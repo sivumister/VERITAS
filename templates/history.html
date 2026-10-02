@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VERITAS - History</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body{
+            min-height:100vh;
+            background:linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb);
+            font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+        }
+        .navbar{
+            backdrop-filter: blur(10px);
+            background: rgba(0,0,0,0.7) !important;
+        }
+        .glass-card{
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(15px);
+            border:1px solid rgba(255,255,255,0.2);
+            border-radius:20px;
+            box-shadow:0 8px 32px rgba(0,0,0,0.2);
+        }
+        .hero{
+            padding-top:80px;
+            color:white;
+        }
+        .table{
+            color:white;
+        }
+        .table thead{
+            border-color:rgba(255,255,255,0.3);
+        }
+        .table td,.table th{
+            background:transparent !important;
+            color:white !important;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg bg-dark shadow-sm" data-bs-theme="dark">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="index.html">VERITAS</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/analysis">Analysis</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/history">History</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/about">About</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container hero text-center">
+    <h1 class="fw-bold">Analysis History</h1>
+    <p class="lead">Review previously analyzed articles and results.</p>
+</div>
+
+<div class="container pb-5">
+    <div class="glass-card p-4">
+        <h3 class="text-white mb-4">Recent Scans</h3>
+
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Article</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+<tbody>
+
+    {% for item in history %}
+
+    <tr>
+
+        <!-- DATE -->
+        <td>
+            {{ item.get("time", "Unknown time") }}
+        </td>
+
+
+        <!-- ARTICLE / SUBMITTED CONTENT -->
+        <td>
+
+            {% set content = item.get("input", "") %}
+
+            {% if content|length > 250 %}
+
+                <!-- Short preview -->
+                <div id="preview{{ loop.index }}">
+
+                    {{ content[:250] }}...
+
+                </div>
+
+
+                <!-- Full content -->
+                <div
+                    class="collapse mt-2"
+                    id="fullContent{{ loop.index }}"
+                >
+
+                    <div
+                        class="border rounded p-3"
+                        style="
+                            white-space: pre-wrap;
+                            background: rgba(255,255,255,0.1);
+                        "
+                    >
+                        {{ content }}
+                    </div>
+
+                </div>
+
+
+                <!-- Read More Button -->
+                <button
+                    class="btn btn-link text-white p-0 mt-2 read-more-btn"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#fullContent{{ loop.index }}"
+                    aria-expanded="false"
+                    aria-controls="fullContent{{ loop.index }}"
+                >
+                    Read more
+                </button>
+
+
+            {% else %}
+
+                {{ content }}
+
+            {% endif %}
+
+        </td>
+
+
+        <!-- RESULT -->
+        <td>
+
+            {% if item.get("result") == "FAKE" %}
+
+                <span class="badge bg-danger">
+                    FAKE
+                </span>
+
+            {% elif item.get("result") == "REAL" %}
+
+                <span class="badge bg-success">
+                    REAL
+                </span>
+
+            {% else %}
+
+                <span class="badge bg-secondary">
+                    Unknown
+                </span>
+
+            {% endif %}
+
+        </td>
+
+    </tr>
+
+    {% endfor %}
+
+</tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+
+    document
+        .querySelectorAll(".read-more-btn")
+        .forEach(function(button) {
+
+            const targetId =
+                button.getAttribute(
+                    "data-bs-target"
+                );
+
+            const target =
+                document.querySelector(
+                    targetId
+                );
+
+
+            if (!target) {
+                return;
+            }
+
+
+            target.addEventListener(
+                "shown.bs.collapse",
+                function() {
+
+                    button.textContent =
+                        "Read less";
+
+                }
+            );
+
+
+            target.addEventListener(
+                "hidden.bs.collapse",
+                function() {
+
+                    button.textContent =
+                        "Read more";
+
+                }
+            );
+
+        });
+
+</script>
+</body>
+</html>

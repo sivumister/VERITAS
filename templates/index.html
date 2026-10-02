@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VERITAS - Fake News Detector</title>
+    <link rel="icon" href="#">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <style>
+    body{
+        min-height:100vh;
+        background: linear-gradient(
+            135deg,
+            #0f172a,
+            #1e3a8a,
+            #2563eb
+        );
+        background-size: cover;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .hero{
+        padding-top:80px;
+        padding-bottom:40px;
+        color:white;
+    }
+
+    .hero h1{
+        font-size:clamp(2.5rem,6vw,4.5rem);
+        font-weight:800;
+        line-height:1.1;
+    }
+
+    .hero p{
+        font-size:clamp(1rem,2vw,1.4rem);
+        opacity:0.9;
+    }
+
+    .highlight{
+        color:#ff4d4d;
+    }
+
+    .glass-card{
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border:1px solid rgba(255,255,255,0.2);
+        border-radius:20px;
+        box-shadow:0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .form-control{
+        border-radius:12px;
+        padding:12px;
+    }
+
+    .form-control:focus{
+        box-shadow:0 0 0 0.2rem rgba(37,99,235,0.25);
+    }
+
+    .btn-custom{
+        background:linear-gradient(
+            135deg,
+            #2563eb,
+            #1d4ed8
+        );
+        border:none;
+        border-radius:12px;
+        padding:12px;
+        font-weight:600;
+        transition:all 0.3s ease;
+    }
+
+    .btn-custom:hover{
+        transform:translateY(-2px);
+        box-shadow:0 8px 20px rgba(37,99,235,0.4);
+    }
+
+    .navbar{
+        backdrop-filter: blur(10px);
+        background: rgba(0,0,0,0.7) !important;
+    }
+
+    .card-title{
+        font-weight:700;
+        color:white;
+    }
+
+    .form-label{
+        color:white;
+        font-weight:500;
+    }
+
+    @media(max-width:768px){
+        .hero{
+            padding-top:50px;
+        }
+    }
+</style>
+</head>
+<body class="bg-primary">
+    <nav class="navbar navbar-expand-lg bg-dark shadow-sm" data-bs-theme="dark">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="#">VERITAS</a>
+
+        <button class="navbar-toggler" type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link active" href="/">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/analysis">Analysis</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/history">History</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/about">About</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+    <div class="container-fluid">
+        <div class="container hero text-center">
+    <h1>
+        Welcome to <br>
+        VERITAS
+    </h1>
+
+    <h2 class="highlight fw-bold">
+        Fake News Detector
+    </h2>
+
+    <p class="mt-3">
+        Verify news articles instantly using AI-powered analysis.
+        Detect misinformation before sharing.
+    </p>
+</div>
+        <div class="container mt-5">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-6">
+                    <div class="glass-card p-4">
+    <h3 class="card-title text-center mb-4">
+        Analyze News Content
+    </h3>
+
+<form action="/analyze" method="POST">
+
+    <div class="mb-3">
+        <label class="form-label">
+            What would you like to analyse?
+        </label>
+
+        <select
+            class="form-select"
+            name="input_type"
+            required
+        >
+            <option value="article" selected>
+                Full News Article
+            </option>
+
+            <option value="headline">
+                News Headline
+            </option>
+
+            <option value="claim">
+                Short Claim
+            </option>
+            <option value="url">
+    News Article URL
+</option>
+        </select>
+    </div>
+
+
+    <div class="mb-3">
+
+        <label class="form-label">
+            News Content
+        </label>
+
+        <textarea
+            class="form-control"
+            name="news_input"
+            id="newsInput"
+            rows="7"
+            placeholder="Paste the news text here..."
+            required>
+        </textarea>
+    </div>
+
+
+    <button
+        type="submit"
+        class="btn btn-primary w-100"
+    >
+        ANALYZE
+    </button>
+
+</form>
+
+</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    <script>
+
+    const inputType =
+        document.getElementById("inputType");
+
+    const newsInput =
+        document.getElementById("newsInput");
+
+
+    inputType.addEventListener(
+        "change",
+        function () {
+
+            if (this.value === "url") {
+
+                newsInput.placeholder =
+                    "Paste the news article URL here...";
+
+                newsInput.rows = 3;
+
+            }
+
+            else if (this.value === "headline") {
+
+                newsInput.placeholder =
+                    "Paste the news headline here...";
+
+                newsInput.rows = 3;
+
+            }
+
+            else if (this.value === "claim") {
+
+                newsInput.placeholder =
+                    "Enter a short factual claim...";
+
+                newsInput.rows = 4;
+
+            }
+
+            else {
+
+                newsInput.placeholder =
+                    "Paste the full news article here...";
+
+                newsInput.rows = 7;
+
+            }
+
+        }
+    );
+
+</script>
+</body>
+</html>

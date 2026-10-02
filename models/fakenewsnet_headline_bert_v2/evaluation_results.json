@@ -1,0 +1,26 @@
+{
+    "dataset": "FakeNewsNet",
+    "model": "BERT Headline V2",
+    "test_samples": 3241,
+    "fake_threshold": 0.51,
+    "accuracy": 0.8528,
+    "macro_precision": 0.8018,
+    "macro_recall": 0.7862,
+    "macro_f1": 0.7934,
+    "fake_precision": 0.7095,
+    "fake_recall": 0.6577,
+    "fake_f1": 0.6826,
+    "real_precision": 0.894,
+    "real_recall": 0.9147,
+    "real_f1": 0.9042,
+    "confusion_matrix": [
+        [
+            513,
+            267
+        ],
+        [
+            210,
+            2251
+        ]
+    ]
+}

@@ -1,0 +1,15 @@
+{
+    "model_type": "Full-Article BERT",
+    "fake_threshold": 0.41,
+    "fake_label": 0,
+    "real_label": 1,
+    "chunk_size": 400,
+    "max_chunks": 10,
+    "aggregation": "mean_probability",
+    "test_accuracy": 0.7811059907834101,
+    "macro_f1": 0.78,
+    "fake_recall": 0.79,
+    "fake_f1": 0.77,
+    "real_recall": 0.78,
+    "real_f1": 0.79
+}

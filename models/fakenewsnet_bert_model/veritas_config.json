@@ -1,0 +1,8 @@
+{
+    "model_type": "FakeNewsNet Headline BERT",
+    "input_type": "headline",
+    "fake_label": 0,
+    "real_label": 1,
+    "max_length": 128,
+    "decision_method": "argmax"
+}

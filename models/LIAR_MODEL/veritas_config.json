@@ -1,0 +1,8 @@
+{
+    "model_type": "LIAR BERT",
+    "input_type": "short_claim",
+    "fake_label": 0,
+    "real_label": 1,
+    "max_length": 256,
+    "decision_method": "argmax"
+}
