@@ -1,7 +1,21 @@
-from flask import Flask, render_template, request
-from datetime import datetime
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from datetime import datetime, timezone
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    login_user,
+    logout_user,
+    login_required,
+    current_user
+)
+from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import os
+import secrets
+import re
+from pathlib import Path
+from sqlalchemy.exc import IntegrityError
 
 from services.model_service import analyze_news
 from services.article_extractor import extract_article
@@ -10,65 +24,196 @@ from services.evidence_service import (
     rank_fact_checks,
     determine_evidence_relationship
 )
+
 from services.prediction_strength import (
     calculate_prediction_strength
 )
+
 from services.explanation_service import (
     build_explanation
 )
+
 from services.assessment_service import (
     build_overall_assessment
 )
+
 from services.attribution_service import (
     attribute_article_text,
     build_influence_highlights
 )
 
 
+# ---------------------------------------------------------
+# CREATE FLASK APPLICATION
+# ---------------------------------------------------------
+
 app = Flask(__name__)
 
-HISTORY_FILE = "history.json"
+
+# ---------------------------------------------------------
+# DATABASE CONFIGURATION
+# ---------------------------------------------------------
+
+# Set SECRET_KEY in the environment for deployment. Locally, retain a
+# randomly generated key so sessions survive restarts. Do not commit this file.
+os.makedirs(app.instance_path, exist_ok=True)
+secret_key = os.environ.get("SECRET_KEY")
+if not secret_key:
+    key_path = Path(app.instance_path) / ".secret_key"
+    try:
+        with key_path.open("x", encoding="utf-8") as key_file:
+            key_file.write(secrets.token_hex(32))
+        key_path.chmod(0o600)
+    except FileExistsError:
+        pass
+    secret_key = key_path.read_text(encoding="utf-8").strip()
+    if not secret_key:
+        raise RuntimeError("Set SECRET_KEY or restore instance/.secret_key.")
+app.config["SECRET_KEY"] = secret_key
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("COOKIE_SECURE") == "1"
+
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL", "sqlite:///veritas.db"
+)
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 
 # ---------------------------------------------------------
-# HISTORY FUNCTIONS
+# DATABASE
 # ---------------------------------------------------------
 
-def load_history():
-
-    if os.path.exists(HISTORY_FILE):
-
-        with open(
-            HISTORY_FILE,
-            "r",
-            encoding="utf-8"
-        ) as file:
-
-            return json.load(file)
-
-    return []
+db = SQLAlchemy(app)
 
 
-def save_history(data):
+# ---------------------------------------------------------
+# LOGIN MANAGER
+# ---------------------------------------------------------
 
-    with open(
-        HISTORY_FILE,
-        "w",
-        encoding="utf-8"
-    ) as file:
+login_manager = LoginManager()
+login_manager.init_app(app)
 
-        json.dump(
-            data,
-            file,
-            indent=4
-        )
+login_manager.login_view = "login"
+login_manager.login_message = "Please log in to continue."
 
+
+# ---------------------------------------------------------
+# DATABASE MODELS AND USER LOADER
+# ---------------------------------------------------------
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    username = db.Column(
+        db.String(80),
+        unique=True,
+        nullable=False
+    )
+
+    email = db.Column(
+        db.String(120),
+        unique=True,
+        nullable=False
+    )
+
+    password_hash = db.Column(
+        db.String(255),
+        nullable=False
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+    histories = db.relationship(
+        "AnalysisHistory",
+        backref="user",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
+
+
+class AnalysisHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=False
+    )
+
+    input_type = db.Column(
+        db.String(20),
+        nullable=False
+    )
+
+    title = db.Column(
+        db.String(500)
+    )
+
+    article_text = db.Column(
+        db.Text
+    )
+
+    url = db.Column(
+        db.Text
+    )
+
+    prediction = db.Column(
+        db.String(20),
+        nullable=False
+    )
+
+    confidence = db.Column(
+        db.Float
+    )
+
+    prediction_strength = db.Column(
+        db.String(20)
+    )
+
+    model_used = db.Column(
+        db.String(100)
+    )
+
+    fact_check_result = db.Column(
+        db.Text
+    )
+
+    explanation = db.Column(
+        db.Text
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc)
+    )
+    # Original history keys and the full analysis-page context are retained.
+    result_data = db.Column(db.JSON, nullable=False)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        return db.session.get(User, int(user_id))
+    except (TypeError, ValueError):
+        return None
+
+
+# All models must exist before creating tables. This also runs under a WSGI
+# server that imports app.py. create_all creates tables; it does not migrate
+# an existing schema. Use migrations if this database already has older tables.
+with app.app_context():
+    db.create_all()
 
 # ---------------------------------------------------------
 # HOME PAGE
 # ---------------------------------------------------------
 
 @app.route("/")
+@login_required
 def home():
 
     return render_template(
@@ -81,6 +226,7 @@ def home():
 # ---------------------------------------------------------
 
 @app.route("/analyze", methods=["POST"])
+@login_required
 def analyze():
 
     # -------------------------------------------------
@@ -551,17 +697,6 @@ def analyze():
         }
 
 
-        history = load_history()
-
-        history.append(
-            record
-        )
-
-        save_history(
-            history
-        )
-
-
         # -------------------------------------------------
         # SEND RESULT TO PAGE
         # -------------------------------------------------
@@ -585,9 +720,7 @@ def analyze():
             article_preview = displayed_content
 
         print("PREVIEW:", article_preview)
-        return render_template(
-
-            "analysis.html",
+        page_context = dict(
 
             article=
                 displayed_content,
@@ -641,9 +774,34 @@ def analyze():
                 attribution_error,
         )
 
+        entry = AnalysisHistory(
+            user_id=current_user.id,
+            input_type=input_type,
+            title=article_title,
+            article_text=displayed_content,
+            url=source_url,
+            prediction=prediction,
+            confidence=(fake_probability if prediction == "FAKE" else real_probability),
+            prediction_strength=prediction_strength["strength"],
+            model_used=model_used,
+            fact_check_result=json.dumps(factcheck_results, ensure_ascii=False),
+            explanation=json.dumps(explanation, ensure_ascii=False),
+            result_data={"history": record, "page_context": page_context}
+        )
+        try:
+            db.session.add(entry)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            app.logger.exception("Could not save analysis history")
+            flash("Analysis completed, but its history could not be saved.", "warning")
+
+        return render_template("analysis.html", **page_context)
+
 
     except Exception as error:
 
+        db.session.rollback()
         print(
             "Analysis error:",
             error
@@ -659,6 +817,72 @@ def analyze():
 # ---------------------------------------------------------
 # ABOUT
 # ---------------------------------------------------------
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for("home"))
+
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        confirmation = request.form.get("confirm_password")
+
+        if not 3 <= len(username) <= 80:
+            flash("Username must contain between 3 and 80 characters.", "danger")
+        elif len(email) > 120 or not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+            flash("Please enter a valid email address.", "danger")
+        elif not 8 <= len(password) <= 128:
+            flash("Password must contain between 8 and 128 characters.", "danger")
+        elif confirmation is not None and password != confirmation:
+            flash("Passwords do not match.", "danger")
+        elif db.session.execute(db.select(User).filter_by(username=username)).scalar_one_or_none():
+            flash("Username already exists.", "danger")
+        elif db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none():
+            flash("Email already registered.", "danger")
+        else:
+            user = User(username=username, email=email,
+                        password_hash=generate_password_hash(password))
+            try:
+                db.session.add(user)
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash("That username or email is already registered.", "danger")
+            else:
+                flash("Account created successfully. You can now log in.", "success")
+                return redirect(url_for("login"))
+
+    return render_template("register.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("home"))
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "")
+        user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
+        if user and len(password) <= 128 and check_password_hash(user.password_hash, password):
+            session.clear()
+            login_user(user)
+            flash("Login successful.", "success")
+            return redirect(url_for("home"))
+        flash("Invalid email or password.", "danger")
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    session.clear()
+    flash("You have been logged out.", "success")
+    return redirect(url_for("login"))
+
 
 @app.route("/about")
 def about():
@@ -673,6 +897,7 @@ def about():
 # ---------------------------------------------------------
 
 @app.route("/analysis")
+@login_required
 def analysis():
 
     return render_template(
@@ -685,14 +910,33 @@ def analysis():
 # ---------------------------------------------------------
 
 @app.route("/history")
+@login_required
 def history():
+    entries = db.session.execute(
+        db.select(AnalysisHistory)
+        .filter_by(user_id=current_user.id)
+        .order_by(AnalysisHistory.created_at.desc(), AnalysisHistory.id.desc())
+    ).scalars().all()
+    # Preserve dictionary keys used by the existing history.html template.
+    history_data = []
+    for entry in entries:
+        record = dict(entry.result_data["history"])
+        record["id"] = entry.id
+        record["article"] = entry.article_text
+        words = (entry.article_text or "").split()
+        record["article_preview"] = " ".join(words[:25]) + ("..." if len(words) > 25 else "")
+        history_data.append(record)
+    return render_template("history.html", history=history_data)
 
-    history_data = load_history()
 
-    return render_template(
-        "history.html",
-        history=history_data[::-1]
+@app.route("/history/<int:id>")
+@login_required
+def history_detail(id):
+    entry = db.first_or_404(
+        db.select(AnalysisHistory).filter_by(id=id, user_id=current_user.id)
     )
+    # Reuse the existing result page; never rerun the model to view history.
+    return render_template("analysis.html", **entry.result_data["page_context"])
 
 
 # ---------------------------------------------------------
