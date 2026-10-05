@@ -9,11 +9,30 @@ from flask_login import (
     login_required,
     current_user
 )
+
+import smtplib
+import ssl
+import hashlib
+import hmac
+
+from email.message import EmailMessage
+
+from itsdangerous import (
+    URLSafeTimedSerializer,
+    BadSignature,
+    SignatureExpired
+)
+
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import os
 import secrets
 import re
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from pathlib import Path
 from sqlalchemy.exc import IntegrityError
 
@@ -210,7 +229,343 @@ def load_user(user_id):
     except (TypeError, ValueError):
         return None
 
+# ---------------------------------------------------------
+# PASSWORD RESET
+# ---------------------------------------------------------
 
+PASSWORD_RESET_SALT = "veritas-password-reset-v1"
+
+
+def get_reset_serializer():
+    return URLSafeTimedSerializer(
+        app.config["SECRET_KEY"]
+    )
+
+
+def get_password_reset_nonce(user):
+    """
+    Creates a value tied to the user's current password.
+
+    After the password changes, old reset links automatically
+    become invalid.
+    """
+
+    secret_key = app.config["SECRET_KEY"].encode("utf-8")
+
+    return hmac.new(
+        secret_key,
+        user.password_hash.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+
+def generate_password_reset_token(user):
+
+    serializer = get_reset_serializer()
+
+    return serializer.dumps(
+        {
+            "user_id": user.id,
+            "nonce": get_password_reset_nonce(user)
+        },
+        salt=PASSWORD_RESET_SALT
+    )
+
+
+def verify_password_reset_token(token):
+
+    serializer = get_reset_serializer()
+
+    try:
+        data = serializer.loads(
+            token,
+            salt=PASSWORD_RESET_SALT,
+            max_age=1800  # 30 minutes
+        )
+
+    except (SignatureExpired, BadSignature):
+        return None
+
+    user = db.session.get(
+        User,
+        data.get("user_id")
+    )
+
+    if not user:
+        return None
+
+    expected_nonce = get_password_reset_nonce(user)
+
+    if not hmac.compare_digest(
+        data.get("nonce", ""),
+        expected_nonce
+    ):
+        return None
+
+    return user
+
+
+def send_password_reset_email(user, reset_url):
+
+    smtp_host = os.environ.get(
+        "SMTP_HOST",
+        "smtp.gmail.com"
+    )
+
+    smtp_port = int(
+        os.environ.get(
+            "SMTP_PORT",
+            "587"
+        )
+    )
+
+    smtp_username = os.environ.get(
+        "SMTP_USERNAME"
+    )
+
+    smtp_password = os.environ.get(
+        "SMTP_PASSWORD"
+    )
+
+    smtp_from = os.environ.get(
+        "SMTP_FROM",
+        smtp_username
+    )
+
+
+    if not smtp_username or not smtp_password:
+        raise RuntimeError(
+            "SMTP email settings are not configured."
+        )
+
+
+    message = EmailMessage()
+
+    message["Subject"] = "Reset your VERITAS password"
+
+    message["From"] = smtp_from
+
+    message["To"] = user.email
+
+
+    message.set_content(
+        f"""
+Hello {user.username},
+
+A password reset was requested for your VERITAS account.
+
+Use the link below to choose a new password:
+
+{reset_url}
+
+This link expires in 30 minutes.
+
+If you did not request this password reset, you can ignore this email.
+
+VERITAS
+Fake News Detector
+"""
+    )
+
+
+    context = ssl.create_default_context()
+
+
+    with smtplib.SMTP(
+        smtp_host,
+        smtp_port,
+        timeout=20
+    ) as server:
+
+        server.starttls(
+            context=context
+        )
+
+        server.login(
+            smtp_username,
+            smtp_password
+        )
+
+        server.send_message(
+            message
+        )
+
+
+@app.route(
+    "/forgot-password",
+    methods=["GET", "POST"]
+)
+def forgot_password():
+
+    if current_user.is_authenticated:
+        return redirect(url_for("home"))
+
+
+    if request.method == "POST":
+
+        email = request.form.get(
+            "email",
+            ""
+        ).strip().lower()
+
+
+        user = db.session.execute(
+            db.select(User).filter_by(
+                email=email
+            )
+        ).scalar_one_or_none()
+
+
+        if user:
+
+            token = generate_password_reset_token(
+                user
+            )
+
+            reset_url = url_for(
+                "reset_password",
+                token=token,
+                _external=True
+            )
+
+
+            try:
+
+                send_password_reset_email(
+                    user,
+                    reset_url
+                )
+
+            except Exception:
+
+                app.logger.exception(
+                    "Could not send password reset email."
+                )
+
+                flash(
+                    "The password reset email could not "
+                    "be sent right now. Please try again later.",
+                    "danger"
+                )
+
+                return render_template(
+                    "forgot_password.html"
+                )
+
+
+        # Important:
+        # Do not reveal whether the email exists.
+        flash(
+            "If an account exists with that email address, "
+            "a password reset link has been sent.",
+            "info"
+        )
+
+        return redirect(
+            url_for("login")
+        )
+
+
+    return render_template(
+        "forgot_password.html"
+    )
+
+
+@app.route(
+    "/reset-password/<token>",
+    methods=["GET", "POST"]
+)
+def reset_password(token):
+
+    if current_user.is_authenticated:
+        return redirect(url_for("home"))
+
+    # Check whether the reset link is valid
+    user = verify_password_reset_token(token)
+
+    if not user:
+
+        flash(
+            "This password reset link is invalid or has expired.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("forgot_password")
+        )
+
+
+    if request.method == "POST":
+
+        password = request.form.get(
+            "password",
+            ""
+        )
+
+        confirmation = request.form.get(
+            "confirm_password",
+            ""
+        )
+
+
+        # Validate password
+        if not 8 <= len(password) <= 128:
+
+            flash(
+                "Password must contain between 8 and 128 characters.",
+                "danger"
+            )
+
+
+        elif password != confirmation:
+
+            flash(
+                "Passwords do not match.",
+                "danger"
+            )
+
+
+        else:
+
+            # Replace old password with new hashed password
+            user.password_hash = generate_password_hash(
+                password
+            )
+
+            try:
+
+                db.session.commit()
+
+            except Exception:
+
+                db.session.rollback()
+
+                app.logger.exception(
+                    "Password reset failed."
+                )
+
+                flash(
+                    "Your password could not be changed. "
+                    "Please try again.",
+                    "danger"
+                )
+
+            else:
+
+                flash(
+                    "Password changed successfully. "
+                    "You can now log in with your new password.",
+                    "success"
+                )
+
+                return redirect(
+                    url_for("login")
+                )
+
+
+    return render_template(
+        "reset_password.html"
+    )
 # All models must exist before creating tables. This also runs under a WSGI
 # server that imports app.py. create_all creates tables; it does not migrate
 # an existing schema. Use migrations if this database already has older tables.
@@ -864,25 +1219,41 @@ def register():
 
     return render_template("register.html")
 
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for("home"))
 
     if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
+        identifier = request.form.get("identifier", "").strip()
         password = request.form.get("password", "")
-        user = db.session.execute(db.select(User).filter_by(email=email)).scalar_one_or_none()
-        if user and len(password) <= 128 and check_password_hash(user.password_hash, password):
+
+        # Allow login using either username OR email
+        user = db.session.execute(
+            db.select(User).where(
+                (User.username == identifier) |
+                (User.email == identifier.lower())
+            )
+        ).scalar_one_or_none()
+
+        if (
+            user
+            and len(password) <= 128
+            and check_password_hash(user.password_hash, password)
+        ):
             session.clear()
             login_user(user)
-            flash("Login successful.", "success")
+
+            flash(
+                f"Welcome back, {user.username}!",
+                "success"
+            )
+
             return redirect(url_for("home"))
-        flash("Invalid email or password.", "danger")
+
+        flash("Invalid username/email or password.", "danger")
 
     return render_template("login.html")
-
 
 @app.route("/logout")
 @login_required
@@ -894,6 +1265,7 @@ def logout():
 
 
 @app.route("/about")
+@login_required
 def about():
 
     return render_template(

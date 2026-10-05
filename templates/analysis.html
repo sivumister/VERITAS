@@ -142,7 +142,11 @@
             VERITAS
         </a>
 
-
+            <li class="nav-item d-flex align-items-center me-lg-3">
+    <span class="navbar-text text-light">
+        Hi, {{ current_user.username }}
+    </span>
+</li>
         <button
             class="navbar-toggler"
             type="button"
@@ -209,6 +213,12 @@
                     </a>
 
                 </li>
+                <li class="nav-item ms-lg-2">
+    <a class="btn btn-outline-danger btn-sm mt-1"
+       href="{{ url_for('logout') }}">
+        Logout
+    </a>
+</li>
 
 
             </ul>
