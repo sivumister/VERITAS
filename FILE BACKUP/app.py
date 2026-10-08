@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from datetime import datetime, timezone
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
@@ -28,7 +28,6 @@ import json
 import os
 import secrets
 import re
-from threading import RLock
 
 from dotenv import load_dotenv
 
@@ -39,9 +38,6 @@ from sqlalchemy.exc import IntegrityError
 
 from services.model_service import analyze_news
 from services.article_extractor import extract_article
-from services.web_evidence_service import (
-    claim_candidates, collect_external_evidence, EvidenceBusy, CACHE_SECONDS
-)
 from services.factcheck_service import search_fact_checks
 from services.evidence_service import (
     rank_fact_checks,
@@ -61,8 +57,8 @@ from services.assessment_service import (
 )
 
 from services.attribution_service import (
-    generate_article_highlights,
-    HighlightsBusy
+    attribute_article_text,
+    build_influence_highlights
 )
 
 
@@ -71,7 +67,6 @@ from services.attribution_service import (
 # ---------------------------------------------------------
 
 app = Flask(__name__)
-_history_write_lock = RLock()
 
 
 # ---------------------------------------------------------
@@ -744,20 +739,207 @@ def analyze():
             threshold=threshold
         )
 
-        # Attribution is optional and runs in its own request after page load.
+        # =========================================================
+        # AI INFLUENCE HIGHLIGHTS
+        # =========================================================
+        #
+        # Only article-based analysis receives passage attribution.
+        #
+        # Integrated Gradients explains which passages influenced
+        # the model's FAKE-side output. It does NOT determine that
+        # highlighted passages are factually false.
+        # =========================================================
+
         attribution_info = None
+
         influence_highlights = None
+
         attribution_error = None
 
-        # External retrieval is on demand. Do not hold the result page for API calls.
-        factcheck_results = []
-        factcheck_error = None
-        evidence_relationship = {
-            "status": "NOT_CHECKED", "external_rating": None,
-            "message": "External evidence has not been checked yet."
-        }
-        candidates = claim_candidates(displayed_content, input_type, article_title)
 
+        if input_type in [
+            "article",
+            "url"
+        ]:
+
+            try:
+
+                print()
+                print(
+                    "Generating AI influence highlights..."
+                )
+
+
+                attribution_info = (
+                    attribute_article_text(
+                        displayed_content,
+                        steps=24
+                    )
+                )
+
+
+                influence_highlights = (
+                    build_influence_highlights(
+
+                        displayed_content,
+
+                        attribution_info,
+
+                        minimum_net=1.5,
+
+                        maximum_highlights=5
+                    )
+                )
+
+
+                print(
+                    "AI influence highlights generated:"
+                )
+
+                print(
+                    influence_highlights[
+                        "highlight_count"
+                    ],
+                    "passage(s)"
+                )
+
+                print(
+                    "Attribution chunks:",
+                    attribution_info[
+                        "chunks_used"
+                    ]
+                )
+
+                print()
+
+
+            except Exception as attribution_exception:
+
+                print(
+                    "Attribution error:",
+                    attribution_exception
+                )
+
+
+                attribution_error = (
+                    "AI influence highlights could "
+                    "not be generated for this article."
+                )
+
+
+                attribution_info = None
+
+                influence_highlights = None
+
+
+        # -------------------------------------------------
+        # SAVE HISTORY
+        # -------------------------------------------------
+        # -------------------------------------------------
+        # EXTERNAL FACT-CHECK SEARCH
+        # -------------------------------------------------
+
+        
+        # =========================================================
+        # EXTERNAL FACT-CHECK EVIDENCE
+        # =========================================================
+
+        factcheck_results = []
+
+        factcheck_error = None
+
+        factcheck_query = None
+
+        evidence_relationship = {
+            "status": "NO_MATCH",
+            "message": "No matching published fact-check was found."
+        }
+
+
+        try:
+
+            # -----------------------------------------------------
+            # CHOOSE SEARCH QUERY
+            # -----------------------------------------------------
+
+            if input_type in ["claim", "headline"]:
+
+                factcheck_query = user_input
+
+
+            elif input_type == "url":
+
+                factcheck_query = (
+                    article_title
+                    if article_title
+                    else " ".join(
+                        displayed_content.split()[:25]
+                    )
+                )
+
+
+            else:
+
+                words = displayed_content.split()
+
+                factcheck_query = " ".join(
+                    words[:25]
+                )
+
+
+            # -----------------------------------------------------
+            # SEARCH GOOGLE FACT CHECK
+            # -----------------------------------------------------
+
+            raw_factcheck_results = search_fact_checks(
+                factcheck_query,
+                max_results=5
+            )
+
+
+            # -----------------------------------------------------
+            # RANK RESULTS BY RELEVANCE
+            # -----------------------------------------------------
+
+            factcheck_results = rank_fact_checks(
+                factcheck_query,
+                raw_factcheck_results
+            )
+
+
+            # -----------------------------------------------------
+            # COMPARE EXTERNAL EVIDENCE WITH AI
+            # -----------------------------------------------------
+
+            evidence_relationship = (
+                determine_evidence_relationship(
+                    prediction,
+                    factcheck_results
+                )
+            )
+
+
+        except Exception as factcheck_exception:
+
+            print(
+                "Fact-check search error:",
+                factcheck_exception
+            )
+
+            factcheck_error = (
+                "External fact-check evidence "
+                "could not be retrieved."
+            )
+
+            evidence_relationship = {
+                "status": "UNAVAILABLE",
+                "message": (
+                    "The external fact-check service "
+                    "was unavailable, so VERITAS could "
+                    "not compare the AI prediction with "
+                    "external evidence."
+                )
+            }
         # =========================================================
         # USER-FRIENDLY PREDICTION EXPLANATION
         # =========================================================
@@ -768,14 +950,10 @@ def analyze():
             real_probability=real_probability,
             prediction_strength=prediction_strength,
             threshold=threshold,
-            evidence_relationship={**evidence_relationship, "status": "NO_MATCH"},
+            evidence_relationship=evidence_relationship,
             factcheck_results=factcheck_results
         )            
        
-        explanation = dict(explanation)
-        explanation["evidence_reason"] = "External verification has not been run. Use Check external evidence to search a selected claim."
-        explanation["interpretation_note"] = "The model prediction is unverified. Prediction strength does not establish factual accuracy."
-
         # =========================================================
         # OVERALL VERITAS ASSESSMENT
         # =========================================================
@@ -958,9 +1136,6 @@ def analyze():
 
             attribution_error=
                 attribution_error,
-            claim_candidates=candidates,
-            external_evidence=None,
-            evidence_policy_version=2,
         )
 
         entry = AnalysisHistory(
@@ -975,19 +1150,16 @@ def analyze():
             model_used=model_used,
             fact_check_result=json.dumps(factcheck_results, ensure_ascii=False),
             explanation=json.dumps(explanation, ensure_ascii=False),
-            result_data={"history": record, "page_context": page_context,
-                         "attribution_prediction": model_result.get("attribution_context") }
+            result_data={"history": record, "page_context": page_context}
         )
         try:
             db.session.add(entry)
             db.session.commit()
-            page_context["analysis_id"] = entry.id
         except Exception:
             db.session.rollback()
             app.logger.exception("Could not save analysis history")
             flash("Analysis completed, but its history could not be saved.", "warning")
 
-        page_context["highlights_csrf"] = highlights_csrf_token()
         return render_template("analysis.html", **page_context)
 
 
@@ -1005,205 +1177,6 @@ def analyze():
 
             error=str(error)
         )
-
-def current_history_context(entry):
-    """Reinterpret legacy saved evidence conservatively, without rerunning any model/API."""
-    context = dict((entry.result_data or {}).get("page_context", {}))
-    context.setdefault("claim_candidates", claim_candidates(entry.article_text, entry.input_type, entry.title))
-    if context.get("evidence_policy_version") != 2:
-        candidates = context["claim_candidates"]
-        query = candidates[0]["text"] if candidates else (entry.article_text or "")
-        reviews = rank_fact_checks(query, context.get("factcheck_results") or [])
-        old_status = (context.get("evidence_relationship") or {}).get("status")
-        relationship = (dict(status="UNAVAILABLE", external_rating=None,
-                             message="The saved external search was unavailable.") if old_status == "UNAVAILABLE" else
-                        determine_evidence_relationship(entry.prediction, reviews))
-        context.update(factcheck_results=reviews, evidence_relationship=relationship,
-                       evidence_policy_version=2)
-        explanation = dict(context.get("explanation") or {})
-        explanation.update(evidence_reason=relationship["message"],
-                           interpretation_note="The model output is a prediction. External findings apply only to the selected claim.")
-        context["explanation"] = explanation
-        context["external_evidence"] = {
-            "selected_claim": query, "sources": [], "factcheck_results": reviews,
-            "google_error": context.get("factcheck_error"), "tavily_error": None,
-            "extraction_warning": None, "evidence_relationship": relationship,
-            "checked_at": None, "legacy": True,
-            "scope_note": "Saved claim reviews are shown below. Run a new search for current web sources."}
-    context["overall_assessment"] = build_overall_assessment(
-        entry.prediction, context.get("prediction_strength") or {},
-        context.get("evidence_relationship"), context.get("factcheck_results"))
-    return context
-
-
-def persist_analysis_update(id, context_updates, history_updates):
-    """Merge into the latest JSON so overlapping evidence/highlight requests do not erase each other."""
-    db.session.rollback()  # End the read transaction before taking a short write lock.
-    with _history_write_lock:
-        entry = db.session.execute(
-            db.select(AnalysisHistory).filter_by(id=id, user_id=current_user.id)
-            .with_for_update().execution_options(populate_existing=True)
-        ).scalar_one_or_none()
-        if entry is None:
-            raise ValueError("This analysis could not be found.")
-        data = dict(entry.result_data or {})
-        context = current_history_context(entry)
-        context.update(context_updates)
-        record = dict(data.get("history", {}))
-        record.update(history_updates)
-        data.update(page_context=context, history=record)
-        entry.result_data = data
-        if "factcheck_results" in context_updates:
-            entry.fact_check_result = json.dumps(context_updates["factcheck_results"], ensure_ascii=False)
-        if "explanation" in context_updates:
-            entry.explanation = json.dumps(context_updates["explanation"], ensure_ascii=False)
-        db.session.commit()
-
-
-@app.route("/history/<int:id>/evidence", methods=["POST"])
-@login_required
-def check_external_evidence(id):
-    token = request.headers.get("X-CSRF-Token", "")
-    expected = session.get("highlights_csrf", "")
-    if not expected or not hmac.compare_digest(token.encode("utf-8"), expected.encode("utf-8")):
-        return jsonify(error="Please reload this analysis page and try again."), 403
-    entry = db.session.execute(
-        db.select(AnalysisHistory).filter_by(id=id, user_id=current_user.id)
-    ).scalar_one_or_none()
-    if entry is None:
-        return jsonify(error="This analysis could not be found."), 404
-    body = request.get_json(silent=True)
-    if not isinstance(body, dict):
-        return jsonify(error="Choose a statement to check."), 400
-    context = current_history_context(entry)
-    candidates = context["claim_candidates"]
-    index = body.get("claim_index", 0)
-    if type(index) is not int or not 0 <= index < len(candidates):
-        return jsonify(error="Choose one of the available statements."), 400
-    refresh = body.get("refresh", False)
-    if type(refresh) is not bool:
-        return jsonify(error="Invalid refresh option."), 400
-    claim = candidates[index]["text"]
-    saved = context.get("external_evidence")
-    # Saved history persists results. Reuse recent complete searches automatically.
-    if saved and not refresh and saved.get("selected_claim") == claim:
-        try:
-            checked = datetime.fromisoformat(saved.get("checked_at", ""))
-            age = (datetime.now(timezone.utc) - checked).total_seconds()
-            if 0 <= age < CACHE_SECONDS and saved.get("google_completed") and saved.get("tavily_completed"):
-                return jsonify(external_evidence=saved, overall_assessment=context["overall_assessment"],
-                               explanation=context.get("explanation"), cached=True)
-        except (TypeError, ValueError):
-            pass
-    prediction = entry.prediction
-    strength = context.get("prediction_strength") or {}
-    source_url = entry.url
-    user_id = current_user.id
-    db.session.rollback()  # Do not hold a database connection during network requests.
-    try:
-        bundle = collect_external_evidence(claim, prediction, source_url=source_url,
-                                           user_id=user_id, refresh=refresh,
-                                           fragment=candidates[index]["kind"] == "search_fragment")
-    except EvidenceBusy as error:
-        return jsonify(error=str(error)), 409
-    except Exception:
-        app.logger.exception("External evidence search failed")
-        return jsonify(error="The evidence search could not be completed. Please try again."), 500
-    relationship = bundle["evidence_relationship"]
-    reviews = bundle["factcheck_results"]
-    assessment = build_overall_assessment(prediction, strength, relationship, reviews)
-    explanation = dict(build_explanation(
-        prediction=prediction, fake_probability=context.get("fake_probability"),
-        real_probability=context.get("real_probability"), prediction_strength=strength,
-        threshold=context.get("threshold"), evidence_relationship=relationship,
-        factcheck_results=reviews))
-    explanation.update(evidence_reason=relationship["message"],
-                       interpretation_note="This evidence check covers the selected statement. Retrieved pages are not automatic proof, and the entire article has not been verified.")
-    updates = dict(external_evidence=bundle, factcheck_results=reviews,
-                   factcheck_error=bundle["google_error"], evidence_relationship=relationship,
-                   overall_assessment=assessment, explanation=explanation, evidence_policy_version=2,
-                   claim_candidates=candidates)
-    record_updates = dict(factcheck_count=len(reviews), evidence_status=relationship["status"],
-                          assessment_status=assessment["status"], assessment_label=assessment["label"],
-                          assessment_headline=assessment["headline"], selected_claim=claim,
-                          web_source_count=len(bundle["sources"]), evidence_checked_at=bundle["checked_at"],
-                          explanation_label=explanation.get("result_label"),
-                          explanation_summary=explanation.get("summary"))
-    warning = None
-    try:
-        persist_analysis_update(id, updates, record_updates)
-    except Exception:
-        db.session.rollback()
-        app.logger.exception("Could not save external evidence")
-        warning = "Evidence is ready, but could not be saved to history."
-    return jsonify(external_evidence=bundle, overall_assessment=assessment,
-                   explanation=explanation, cached=bundle.get("cached", False), save_warning=warning)
-
-
-def highlights_csrf_token():
-    if "highlights_csrf" not in session:
-        session["highlights_csrf"] = secrets.token_urlsafe(32)
-    return session["highlights_csrf"]
-
-
-@app.route("/history/<int:id>/highlights", methods=["POST"])
-@login_required
-def generate_highlights(id):
-    # Read content from the owner's saved history, not arbitrary client input.
-    supplied_token = request.headers.get("X-CSRF-Token", "")
-    expected_token = session.get("highlights_csrf", "")
-    if not expected_token or not hmac.compare_digest(supplied_token.encode("utf-8"), expected_token.encode("utf-8")):
-        return jsonify(error="Please reload this analysis page and try again."), 403
-    entry = db.session.execute(
-        db.select(AnalysisHistory).filter_by(id=id, user_id=current_user.id)
-    ).scalar_one_or_none()
-    if entry is None:
-        return jsonify(error="This analysis could not be found."), 404
-    if entry.input_type not in ("article", "url"):
-        return jsonify(error="Highlights are available for articles only."), 400
-
-    data = dict(entry.result_data or {})
-    context = dict(data.get("page_context", {}))
-    if context.get("influence_highlights") is not None:
-        return jsonify(influence_highlights=context["influence_highlights"],
-                       attribution_info=context.get("attribution_info"),
-                       message=context.get("attribution_message"),
-                       skipped=bool(context.get("attribution_skipped")), cached=True)
-    try:
-        # A low FAKE score is a speed policy, not evidence that no influence exists.
-        if entry.prediction == "REAL" and float(context.get("fake_probability", 100)) < 30:
-            payload = {"influence_highlights": {"segments": [], "highlight_count": 0},
-                       "attribution_info": None, "skipped": True,
-                       "message": "Highlights were skipped to save time because the model's "
-                                  "FAKE score is below 30%. This does not verify the article's accuracy."}
-        else:
-            payload = generate_article_highlights(
-                entry.article_text or "", prediction_context=data.get("attribution_prediction"))
-    except HighlightsBusy as error:
-        return jsonify(error=str(error)), 409
-    except Exception:
-        app.logger.exception("Could not generate article highlights")
-        return jsonify(error="Highlights could not be generated. Please try again."), 500
-
-    updates = dict(influence_highlights=payload["influence_highlights"],
-                   attribution_info=payload["attribution_info"], attribution_error=None,
-                   attribution_message=payload.get("message"),
-                   attribution_skipped=payload.get("skipped", False))
-    info = payload.get("attribution_info") or {}
-    record_updates = dict(influence_highlight_count=payload["influence_highlights"]["highlight_count"],
-                          attribution_chunks=info.get("chunks_used"),
-                          attribution_truncated=info.get("truncated"),
-                          attribution_selected_chunks=info.get("selected_chunks"),
-                          attribution_steps=info.get("steps"))
-    try:
-        persist_analysis_update(id, updates, record_updates)
-    except Exception:
-        db.session.rollback()
-        app.logger.exception("Could not save generated highlights")
-        return jsonify(**payload, cached=False,
-                       save_warning="Highlights are ready, but could not be saved to history.")
-    return jsonify(**payload, cached=False)
-
 
 # ---------------------------------------------------------
 # ABOUT
@@ -1329,9 +1302,6 @@ def history():
     history_data = []
     for entry in entries:
         record = dict(entry.result_data["history"])
-        context = current_history_context(entry)
-        record.update(assessment_label=context["overall_assessment"]["label"],
-                      assessment_headline=context["overall_assessment"]["headline"])
         record["id"] = entry.id
         record["article"] = entry.article_text
         words = (entry.article_text or "").split()
@@ -1347,9 +1317,7 @@ def history_detail(id):
         db.select(AnalysisHistory).filter_by(id=id, user_id=current_user.id)
     )
     # Reuse the existing result page; never rerun the model to view history.
-    context = current_history_context(entry)
-    context.update(analysis_id=entry.id, highlights_csrf=highlights_csrf_token())
-    return render_template("analysis.html", **context)
+    return render_template("analysis.html", **entry.result_data["page_context"])
 
 
 # ---------------------------------------------------------
@@ -1366,6 +1334,5 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port,
         debug=False,
-        use_reloader=False,
-        threaded=True
+        use_reloader=False
     )

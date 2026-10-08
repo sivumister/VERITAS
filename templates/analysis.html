@@ -116,6 +116,80 @@
             white-space: nowrap;
         }
 
+
+
+        /* ========================================
+           COLLAPSIBLE ANALYSIS SECTIONS
+        ======================================== */
+
+        .analysis-accordion .accordion-item,
+        .submission-accordion .accordion-item {
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 14px;
+            background: #fff;
+        }
+
+        .analysis-accordion .accordion-button,
+        .submission-accordion .accordion-button {
+            font-size: 1.05rem;
+            font-weight: 650;
+            color: #212529;
+            background: #f8f9fa;
+            padding: 1rem 1.1rem;
+        }
+
+        .analysis-accordion .accordion-button:not(.collapsed),
+        .submission-accordion .accordion-button:not(.collapsed) {
+            color: #1e3a8a;
+            background: #eef4ff;
+            box-shadow: none;
+        }
+
+        .analysis-accordion .accordion-button:focus,
+        .submission-accordion .accordion-button:focus {
+            box-shadow: 0 0 0 .2rem rgba(37, 99, 235, .12);
+        }
+
+        .analysis-accordion .accordion-body,
+        .submission-accordion .accordion-body {
+            padding: 1.2rem;
+        }
+
+        .model-summary-card {
+            background: #f8f9fa;
+        }
+
+        .score-card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 14px 16px;
+            height: 100%;
+        }
+
+        .technical-panel {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .section-help {
+            color: #6c757d;
+            font-size: .95rem;
+        }
+
+        .article-preview-text {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .source-link {
+            overflow-wrap: anywhere;
+        }
+
     </style>
 
 </head>
@@ -282,204 +356,91 @@
         <div class="result-card">
 
 
-            <!-- INPUT TYPE -->
+            <!-- ==================================
+                 SUBMISSION DETAILS
+            =================================== -->
 
-            <h5>
-                Analysis Type
-            </h5>
+            <div class="accordion submission-accordion mb-4" id="submissionDetailsAccordion">
+                <div class="accordion-item">
 
+                    <h2 class="accordion-header" id="submissionDetailsHeading">
+                        <button
+                            class="accordion-button collapsed"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#submissionDetailsCollapse"
+                            aria-expanded="false"
+                            aria-controls="submissionDetailsCollapse"
+                        >
+                            Submission Details
+                        </button>
+                    </h2>
 
-            <p class="text-capitalize">
+                    <div
+                        id="submissionDetailsCollapse"
+                        class="accordion-collapse collapse"
+                        aria-labelledby="submissionDetailsHeading"
+                    >
+                        <div class="accordion-body">
 
-                {{ input_type }}
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <small class="text-muted d-block">Analysis Type</small>
+                                    <span class="text-capitalize fw-semibold">{{ input_type }}</span>
+                                </div>
 
-            </p>
+                                <div class="col-md-6">
+                                    <small class="text-muted d-block">Model Used</small>
+                                    <span class="fw-semibold">{{ model_used }}</span>
+                                </div>
+                            </div>
 
+                            {% if article_title %}
+                            <div class="mb-3">
+                                <small class="text-muted d-block">Article Headline</small>
+                                <span class="fw-semibold">{{ article_title }}</span>
+                            </div>
+                            {% endif %}
 
+                            {% if source_url %}
+                            <div class="mb-3">
+                                <small class="text-muted d-block">Source URL</small>
+                                <a
+                                    class="source-link"
+                                    href="{{ source_url }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    {{ source_url }}
+                                </a>
+                            </div>
+                            {% endif %}
 
-            <!-- MODEL USED -->
+                            <div>
+                                <small class="text-muted d-block mb-1">Content Preview</small>
+                                <p class="article-preview-text mb-0">{{ article_preview }}</p>
+                            </div>
 
-            <h5>
-                Model Used
-            </h5>
+                        </div>
+                    </div>
 
-
-            <p>
-
-                {{ model_used }}
-
-            </p>
-
-
-            <hr>
-            {% if article_title %}
-
-            <h5>
-                Article Headline
-            </h5>
-
-            <p>
-                {{ article_title }}
-            </p>
-
-            {% endif %}
-
-
-            {% if source_url %}
-
-            <h5>
-                Source URL
-            </h5>
-
-            <p>
-                <a
-                    href="{{ source_url }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    {{ source_url }}
-                </a>
-            </p>
-
-            {% endif %}
-
-
-            <!-- SUBMITTED CONTENT -->
-
-           <h5>
-                Content Preview
-            </h5>
-
-            <p>
-                {{ article_preview }}
-            </p>
-
-            <hr>
+                </div>
+            </div>
 
             <!-- ==================================
      OVERALL VERITAS ASSESSMENT
 =================================== -->
 
 {% if overall_assessment %}
-
-<div class="mb-4">
-
-    <h4 class="mb-3">
-        Overall VERITAS Assessment
-    </h4>
-
-
-    {% if overall_assessment.status == "ALIGNED" %}
-
-    <div class="alert alert-success">
-
-        <h5 class="mb-2">
-            {{ overall_assessment.headline }}
-        </h5>
-
-        <p class="mb-2">
-            <strong>
-                Assessment:
-            </strong>
-
-            {{ overall_assessment.label }}
-        </p>
-
-        <p class="mb-2">
-            {{ overall_assessment.message }}
-        </p>
-
-        <small>
-            {{ overall_assessment.guidance }}
-        </small>
-
+<div class="mb-4" id="overallAssessment" role="status" aria-live="polite">
+    <h4 class="mb-3">Overall VERITAS Assessment</h4>
+    <div id="overallPanel" class="alert {% if overall_assessment.status == 'ALIGNED' %}alert-success{% elif overall_assessment.status == 'CONFLICT' %}alert-warning{% elif overall_assessment.status == 'INCONCLUSIVE' %}alert-info{% else %}alert-secondary{% endif %}">
+        <h5 class="mb-2" id="overallHeadline">{{ overall_assessment.headline }}</h5>
+        <p class="mb-2"><strong>Assessment:</strong> <span id="overallLabel">{{ overall_assessment.label }}</span></p>
+        <p class="mb-2" id="overallMessage">{{ overall_assessment.message }}</p>
+        <small id="overallGuidance">{{ overall_assessment.guidance }}</small>
     </div>
-
-
-    {% elif overall_assessment.status == "CONFLICT" %}
-
-    <div class="alert alert-warning">
-
-        <h5 class="mb-2">
-            ⚠ {{ overall_assessment.headline }}
-        </h5>
-
-        <p class="mb-2">
-            <strong>
-                Assessment:
-            </strong>
-
-            {{ overall_assessment.label }}
-        </p>
-
-        <p class="mb-2">
-            {{ overall_assessment.message }}
-        </p>
-
-        <strong>
-            {{ overall_assessment.guidance }}
-        </strong>
-
-    </div>
-
-
-    {% elif overall_assessment.status == "INCONCLUSIVE" %}
-
-    <div class="alert alert-info">
-
-        <h5 class="mb-2">
-            {{ overall_assessment.headline }}
-        </h5>
-
-        <p class="mb-2">
-            <strong>
-                AI Assessment:
-            </strong>
-
-            {{ overall_assessment.label }}
-        </p>
-
-        <p class="mb-2">
-            {{ overall_assessment.message }}
-        </p>
-
-        <small>
-            {{ overall_assessment.guidance }}
-        </small>
-
-    </div>
-
-
-    {% else %}
-
-    <div class="alert alert-secondary">
-
-        <h5 class="mb-2">
-            {{ overall_assessment.headline }}
-        </h5>
-
-        <p class="mb-2">
-            <strong>
-                AI Assessment:
-            </strong>
-
-            {{ overall_assessment.label }}
-        </p>
-
-        <p class="mb-2">
-            {{ overall_assessment.message }}
-        </p>
-
-        <small>
-            {{ overall_assessment.guidance }}
-        </small>
-
-    </div>
-
-    {% endif %}
-
 </div>
-
 <hr>
 {% endif %}
 
@@ -494,816 +455,277 @@
         AI Model Assessment
     </h4>
 
+    <div class="model-summary-card border rounded-3 p-4">
 
-    <div class="border rounded-3 p-4 bg-light">
-
-        <!-- RESULT + STRENGTH -->
-
-        <div class="d-flex flex-wrap
-                    justify-content-between
-                    align-items-center
-                    gap-3 mb-3">
+        <!-- MAIN RESULT + STRENGTH -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
 
             <div>
-
-                <small class="text-muted d-block mb-1">
-                    Model classification
-                </small>
+                <small class="text-muted d-block mb-1">Model classification</small>
 
                 {% if result == "FAKE" %}
-
-                <span class="badge bg-danger fs-6">
-                    POTENTIALLY FAKE
-                </span>
-
+                <span class="badge bg-danger fs-6">MODEL PREDICTION: FAKE</span>
                 {% else %}
-
-                <span class="badge bg-success fs-6">
-                    POTENTIALLY CREDIBLE
-                </span>
-
+                <span class="badge bg-secondary fs-6">MODEL PREDICTION: REAL</span>
                 {% endif %}
-
             </div>
 
-
             <div>
-
-                <small class="text-muted d-block mb-1">
-                    Prediction strength
-                </small>
+                <small class="text-muted d-block mb-1">Prediction strength</small>
 
                 {% if prediction_strength.strength == "HIGH" %}
-
-                <span class="badge bg-success fs-6">
-                    HIGH
-                </span>
-
+                <span class="badge bg-success fs-6">HIGH</span>
                 {% elif prediction_strength.strength == "MODERATE" %}
-
-                <span class="badge bg-warning text-dark fs-6">
-                    MODERATE
-                </span>
-
+                <span class="badge bg-warning text-dark fs-6">MODERATE</span>
                 {% else %}
-
-                <span class="badge bg-secondary fs-6">
-                    LOW
-                </span>
-
+                <span class="badge bg-secondary fs-6">LOW</span>
                 {% endif %}
-
             </div>
 
         </div>
 
+        <p class="small text-muted mb-3">
+            This is the classifier's prediction. Prediction strength measures distance from its decision
+            boundary; it does not establish factual accuracy. External verification is shown separately above.
+        </p>
+        <!-- MODEL SCORES -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="score-card">
+                    <small class="text-muted">Fake score</small>
+                    <div class="fs-4 fw-semibold">{{ fake_probability }}%</div>
+                </div>
+            </div>
 
-        <!-- BORDERLINE WARNING -->
+            <div class="col-md-6">
+                <div class="score-card">
+                    <small class="text-muted">Real score</small>
+                    <div class="fs-4 fw-semibold">{{ real_probability }}%</div>
+                </div>
+            </div>
+        </div>
 
         {% if prediction_strength.strength == "LOW" %}
-
-        <div class="alert alert-warning mb-4">
-
-            <strong>
-                Borderline AI result
-            </strong>
-
+        <div class="alert alert-warning mb-3">
+            <strong>Borderline AI result</strong>
             <p class="mb-0 mt-1">
-
-                This classification is only
-                {{ prediction_strength.distance }}
-                percentage points from the model's
-                decision boundary.
-
-                The AI result should therefore be
-                interpreted cautiously.
-
+                This classification is only {{ prediction_strength.distance }} percentage points
+                from the model's decision boundary. The AI result should therefore be interpreted cautiously.
             </p>
-
         </div>
-
         {% endif %}
 
-
-        <!-- MODEL SCORES -->
-
-        <div class="row g-3 mb-3">
-
-            <div class="col-md-6">
-
-                <div class="border rounded p-3 h-100">
-
-                    <small class="text-muted">
-                        Fake score
-                    </small>
-
-                    <div class="fs-4 fw-semibold">
-                        {{ fake_probability }}%
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="col-md-6">
-
-                <div class="border rounded p-3 h-100">
-
-                    <small class="text-muted">
-                        Real score
-                    </small>
-
-                    <div class="fs-4 fw-semibold">
-                        {{ real_probability }}%
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- DECISION INFORMATION -->
-
-        <div class="mt-3">
-
-            <p class="mb-1">
-
-                <strong>
-                    Decision boundary:
-                </strong>
-
-                {{ prediction_strength.decision_boundary }}%
-
-            </p>
-
-
-            <p class="mb-1">
-
-                <strong>
-                    Distance from boundary:
-                </strong>
-
-                {{ prediction_strength.distance }}
-                percentage points
-
-            </p>
-
-
-
-
-            {% if chunks_used is not none %}
-
-            <p class="mb-1">
-
-                <strong>
-                    Article chunks analysed:
-                </strong>
-
-                {{ chunks_used }}
-
-            </p>
-
-            {% endif %}
-
-        </div>
-
-
-        <div class="alert alert-secondary mt-4 mb-0">
-
-            <strong>
-                Important:
-            </strong>
-
-            These percentages are model scores used
-            for classification. They are not proof
-            that the submitted content is objectively
-            true or false.
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<hr class="my-4">
-
-            <!-- ==================================
-     VERITAS EXPLANATION
-=================================== -->
-
-{% if explanation %}
-
-<div class="mt-4">
-
-    <h4 class="mb-3">
-        Why did VERITAS produce this result?
-    </h4>
-
-
-
-    <!-- MODEL REASON -->
-
-    <div class="border rounded p-3 mb-3">
-
-        <h5>
-            Model Explanation
-        </h5>
-
-        <p class="mb-0">
-            {{ explanation.model_reason }}
-        </p>
-
-    </div>
-
-
-    <!-- PREDICTION STRENGTH REASON -->
-
-    <div class="border rounded p-3 mb-3">
-
-        <h5>
-            Prediction Strength
-        </h5>
-
-        <p class="mb-0">
-            {{ explanation.strength_reason }}
-        </p>
-
-    </div>
-
-
-    <!-- EXTERNAL EVIDENCE EXPLANATION -->
-
-    <div class="border rounded p-3 mb-3">
-
-        <h5>
-            External Evidence Interpretation
-        </h5>
-
-        <p class="mb-0">
-            {{ explanation.evidence_reason }}
-        </p>
-
-    </div>
-
-
-    <!-- IMPORTANT NOTE -->
-
-    <div class="alert alert-light border">
-
-        <strong>
-            Important:
-        </strong>
-
-        {{ explanation.interpretation_note }}
-
-    </div>
-
-</div>
-
-<hr class="my-4">
-
-{% endif %}
-
-
-<!-- ==================================
-     AI INFLUENCE HIGHLIGHTS
-=================================== -->
-
-{% if input_type in ["article", "url"] %}
-
-<div class="mt-4">
-
-    <h4 class="mb-3">
-        AI Influence Highlights
-    </h4>
-
-
-    <div class="alert alert-info">
-
-        <strong>
-            What do these highlights mean?
-        </strong>
-
-        <p class="mb-0 mt-1">
-
-            Highlighted passages contain language that
-            contributed more strongly toward the AI model's
-            FAKE-side output.
-
-            These highlights explain model behaviour and
-            do not mean that the highlighted statements
-            are factually false.
-
-        </p>
-
-    </div>
-
-
-    {% if attribution_error %}
-
-    <div class="alert alert-secondary">
-
-        {{ attribution_error }}
-
-    </div>
-
-
-    {% elif influence_highlights %}
-
-
-        <!-- ==================================
-             ATTRIBUTION SUMMARY
-        =================================== -->
-
-        <div class="d-flex flex-wrap gap-3 mb-3">
-
-            <div>
-
-                <strong>
-                    Highlighted passages:
-                </strong>
-
-                {{ influence_highlights.highlight_count }}
-
-            </div>
-
-
-            {% if attribution_info %}
-
-            <div>
-
-                <strong>
-                    Article chunks explained:
-                </strong>
-
-                {{ attribution_info.chunks_used }}
-
-            </div>
-
-            {% endif %}
-
-        </div>
-
-
-        <!-- ==================================
-             LEGEND
-        =================================== -->
-
-        <div class="mb-3">
-
-            <small class="text-muted me-2">
-                Influence level:
-            </small>
-
-
-            <span class="badge bg-warning text-dark me-1">
-                LOW
-            </span>
-
-
-            <span
-                class="badge me-1"
-                style="
-                    background:#fd7e14;
-                    color:white;
-                "
-            >
-                MODERATE
-            </span>
-
-
-            <span class="badge bg-danger">
-                HIGH
-            </span>
-
-        </div>
-
-
-        <!-- ==================================
-             TRUNCATION NOTICE
-        =================================== -->
-
-        {% if attribution_info
-              and attribution_info.truncated %}
-
-        <div class="alert alert-warning">
-
-            <strong>
-                Analysis length notice:
-            </strong>
-
-            The article exceeded the maximum amount of
-            text processed by the article model.
-
-            Only passages within the analysed portion
-            were eligible for AI influence highlighting.
-
-        </div>
-
-        {% endif %}
-
-
-        <!-- ==================================
-             HIGHLIGHTED ARTICLE
-        =================================== -->
-
-        <div class="ai-influence-box">
-
-            {% for segment in influence_highlights.segments %}
-
-
-                {% if segment.highlighted %}
-
-
-                    {% if segment.signal == "HIGH" %}
-
-                    <span
-                        class="
-                            ai-highlight
-                            ai-highlight-high
-                        "
-                        title="
-                            Model attribution contribution:
-                            +{{ segment.net_contribution|round(2) }}
-                            percentage points
-                        "
-                    >
-
-                        {{ segment.text }}
-
-                    </span>
-
-                    <span
-                        class="
-                            badge
-                            bg-danger
-                            ai-influence-tag
-                        "
-                    >
-                        HIGH
-                        +{{ segment.net_contribution|round(2) }}
-                    </span>
-
-
-                    {% elif segment.signal == "MODERATE" %}
-
-                    <span
-                        class="
-                            ai-highlight
-                            ai-highlight-moderate
-                        "
-                        title="
-                            Model attribution contribution:
-                            +{{ segment.net_contribution|round(2) }}
-                            percentage points
-                        "
-                    >
-
-                        {{ segment.text }}
-
-                    </span>
-
-                    <span
-                        class="
-                            badge
-                            ai-influence-tag
-                        "
-                        style="
-                            background:#fd7e14;
-                            color:white;
-                        "
-                    >
-                        MODERATE
-                        +{{ segment.net_contribution|round(2) }}
-                    </span>
-
-
-                    {% else %}
-
-                    <span
-                        class="
-                            ai-highlight
-                            ai-highlight-low
-                        "
-                        title="
-                            Model attribution contribution:
-                            +{{ segment.net_contribution|round(2) }}
-                            percentage points
-                        "
-                    >
-
-                        {{ segment.text }}
-
-                    </span>
-
-                    <span
-                        class="
-                            badge
-                            bg-warning
-                            text-dark
-                            ai-influence-tag
-                        "
-                    >
-                        LOW
-                        +{{ segment.net_contribution|round(2) }}
-                    </span>
-
-                    {% endif %}
-
-
-                {% else %}
-
-                    <span>
-                        {{ segment.text }}
-                    </span>
-
+        <button
+            class="btn btn-outline-secondary btn-sm"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#technicalModelDetails"
+            aria-expanded="false"
+            aria-controls="technicalModelDetails"
+        >
+            View technical model details
+        </button>
+
+        <div class="collapse mt-3" id="technicalModelDetails">
+            <div class="technical-panel">
+
+                <p class="mb-2">
+                    <strong>Decision boundary:</strong>
+                    {{ prediction_strength.decision_boundary }}%
+                </p>
+
+                <p class="mb-2">
+                    <strong>Distance from boundary:</strong>
+                    {{ prediction_strength.distance }} percentage points
+                </p>
+
+                {% if chunks_used is not none %}
+                <p class="mb-2">
+                    <strong>Article chunks analysed:</strong>
+                    {{ chunks_used }}
+                </p>
                 {% endif %}
 
+                <div class="alert alert-secondary mt-3 mb-0">
+                    <strong>Important:</strong>
+                    These percentages are model scores used for classification. They are not proof
+                    that the submitted content is objectively true or false.
+                </div>
 
-                {{ " " }}
-
-
-            {% endfor %}
-
+            </div>
         </div>
 
+    </div>
+</div>
 
-        <!-- ==================================
-             NO HIGHLIGHTS
-        =================================== -->
+<p class="section-help mb-3">
+    Open a section below when you want more detail about the result.
+</p>
 
-        {% if influence_highlights.highlight_count == 0 %}
+<div class="accordion analysis-accordion" id="analysisDetailsAccordion">
 
-        <div class="alert alert-light border mt-3 mb-0">
+    <!-- ==================================
+         VERITAS EXPLANATION
+    =================================== -->
+    {% if explanation %}
+    <div class="accordion-item">
 
-            No passages exceeded the current
-            AI influence-display threshold.
+        <h2 class="accordion-header" id="explanationHeading">
+            <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#explanationCollapse"
+                aria-expanded="false"
+                aria-controls="explanationCollapse"
+            >
+                Why did VERITAS produce this result?
+            </button>
+        </h2>
 
-            This does not mean that the article has been
-            verified as true or credible.
+        <div
+            id="explanationCollapse"
+            class="accordion-collapse collapse"
+            aria-labelledby="explanationHeading"
+            data-bs-parent="#analysisDetailsAccordion"
+        >
+            <div class="accordion-body">
 
+                <div class="border rounded p-3 mb-3">
+                    <h5>Model Explanation</h5>
+                    <p class="mb-0">{{ explanation.model_reason }}</p>
+                </div>
+
+                <div class="border rounded p-3 mb-3">
+                    <h5>Prediction Strength</h5>
+                    <p class="mb-0">{{ explanation.strength_reason }}</p>
+                </div>
+
+                <div class="border rounded p-3 mb-3">
+                    <h5>External Evidence Interpretation</h5>
+                    <p class="mb-0" id="explanationEvidenceReason">{{ explanation.evidence_reason }}</p>
+                </div>
+
+                <div class="alert alert-light border mb-0">
+                    <strong>Important:</strong>
+                    <span id="explanationInterpretationNote">{{ explanation.interpretation_note }}</span>
+                </div>
+
+            </div>
         </div>
 
-        {% endif %}
-
-
-        <!-- ==================================
-             TECHNICAL NOTE
-        =================================== -->
-
-        <small class="text-muted d-block mt-3">
-
-            Influence values describe how strongly language
-            within a passage contributed toward the model's
-            FAKE-side output relative to its attribution
-            baseline.
-
-            They are explanation values, not probabilities
-            of factual falsity.
-
-        </small>
-
-
+    </div>
     {% endif %}
 
-</div>
 
+    <!-- ==================================
+         AI INFLUENCE HIGHLIGHTS
+    =================================== -->
+    {% if input_type in ["article", "url"] %}
+    <div class="accordion-item">
 
-<hr class="my-4">
+        <h2 class="accordion-header" id="influenceHeading">
+            <button
+                class="accordion-button collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#influenceCollapse"
+                aria-expanded="false"
+                aria-controls="influenceCollapse"
+            >
+                AI Influence Highlights
+            </button>
+        </h2>
 
-{% endif %}
-
-
-            <!-- ==================================
-                EXTERNAL FACT-CHECK EVIDENCE
-            =================================== -->
-
-            <h4 class="mb-3">
-                External Fact-Check Evidence
-            </h4>
-
-            <!-- ==================================
-                EVIDENCE RELATIONSHIP
-            =================================== -->
-
-            {% if evidence_relationship %}
-
-
-                {% if evidence_relationship.status == "AGREEMENT" %}
-
-                <div class="alert alert-success">
-
-                    <h5 class="mb-2">
-                        ✓ Supporting Evidence
-                    </h5>
-
-                    <p class="mb-0">
-                        {{ evidence_relationship.message }}
-                    </p>
-
-                </div>
-
-
-                {% elif evidence_relationship.status == "CONFLICT" %}
-
-                <div class="alert alert-warning">
-
-                    <h5 class="mb-2">
-                        ⚠ Conflicting Evidence
-                    </h5>
-
-                    <p class="mb-0">
-                        {{ evidence_relationship.message }}
-                    </p>
-
-                </div>
-
-
-                {% elif evidence_relationship.status == "NO_CLEAR_VERDICT" %}
+        <div
+            id="influenceCollapse"
+            class="accordion-collapse collapse"
+            aria-labelledby="influenceHeading"
+            data-bs-parent="#analysisDetailsAccordion"
+        >
+            <div class="accordion-body">
 
                 <div class="alert alert-info">
-
-                    <h5 class="mb-2">
-                        ℹ No Clear External Verdict
-                    </h5>
-
-                    <p class="mb-0">
-                        {{ evidence_relationship.message }}
+                    <strong>What do these highlights mean?</strong>
+                    <p class="mb-0 mt-1">
+                        Highlighted passages contain language that contributed more strongly toward
+                        the AI model's FAKE-side output. These highlights explain model behaviour and
+                        do not mean that the highlighted statements are factually false.
                     </p>
-
                 </div>
 
-
-
-                {% elif evidence_relationship.status == "UNAVAILABLE" %}
-
-                <div class="alert alert-secondary">
-
-                    <h5 class="mb-2">
-                        External Verification Unavailable
-                    </h5>
-
-                    <p class="mb-0">
-                        {{ evidence_relationship.message }}
+                <div id="highlightsControls" class="mb-3">
+                    <p class="text-muted mb-2">
+                        Generate an explanation when you need it. The prediction above is already complete.
                     </p>
-
+                    {% if analysis_id and not influence_highlights %}
+                    <button type="button" class="btn btn-outline-primary" id="generateHighlights"
+                            data-url="{{ url_for('generate_highlights', id=analysis_id) }}"
+                            data-csrf="{{ highlights_csrf }}">
+                        Generate AI Influence Highlights
+                    </button>
+                    {% elif not influence_highlights %}
+                    <p class="text-muted mb-0">
+                        Highlights need a saved analysis. Please analyse the article again if history could not be saved.
+                    </p>
+                    {% endif %}
                 </div>
-
-
-                {% endif %}
-
-
-            {% endif %}
-
-            {% if factcheck_error %}
-
-            <div class="alert alert-warning">
-
-                {{ factcheck_error }}
+                <div id="highlightsStatus" role="status" aria-live="polite" class="mb-3"></div>
+                <div id="highlightsResult" aria-busy="false"></div>
+                <noscript><p class="text-muted">Enable JavaScript to generate and view AI Influence Highlights.</p></noscript>
+                <script type="application/json" id="savedHighlights">{{ {
+                    'influence_highlights': influence_highlights|default(none),
+                    'attribution_info': attribution_info|default(none),
+                    'message': attribution_message|default(none),
+                    'skipped': attribution_skipped|default(false)
+                }|tojson }}</script>
 
             </div>
+        </div>
+
+    </div>
+    {% endif %}
 
 
-            {% elif factcheck_results %}
-
-
-            <p class="text-muted">
-
-                VERITAS found published fact-checks
-                related to the submitted content.
-
-            </p>
-
-
-            {% for check in factcheck_results[:3] %}
-            <p class="mb-2">
-
-            <strong>
-                Match relevance:
-            </strong>
-
-            {% if check.relevance == "HIGH" %}
-
-                <span class="badge bg-success">
-                    HIGH
-                </span>
-
-            {% elif check.relevance == "MEDIUM" %}
-
-                <span class="badge bg-warning text-dark">
-                    MEDIUM
-                </span>
-
-            {% else %}
-
-                <span class="badge bg-secondary">
-                    LOW
-                </span>
-
-            {% endif %}
-
-        </p>
-
-        <p class="mb-2">
-
-            <strong>
-                Relevance score:
-            </strong>
-
-            {{ (check.relevance_score * 100)|round|int }}%
-
-        </p>
-
-            <div class="border rounded p-3 mb-3">
-
-
-                <h6 class="fw-bold">
-                    {{ check.publisher }}
-                </h6>
-
-
-                <p class="mb-2">
-
-                    <strong>
-                        Reviewed claim:
-                    </strong>
-
-                    {{ check.claim }}
-
+    <!-- External retrieval stays optional and separate from the classifier. -->
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="evidenceHeading">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#evidenceCollapse" aria-expanded="false" aria-controls="evidenceCollapse">
+                External Evidence: Fact-Checks and Web Sources
+            </button>
+        </h2>
+        <div id="evidenceCollapse" class="accordion-collapse collapse" aria-labelledby="evidenceHeading"
+             data-bs-parent="#analysisDetailsAccordion">
+            <div class="accordion-body">
+                <p class="section-help">
+                    Choose a statement to search. Published claim reviews and related web pages are shown
+                    separately. A related page does not automatically confirm a statement.
                 </p>
-
-
-                <p class="mb-2">
-
-                    <strong>
-                        Rating:
-                    </strong>
-
-                    {{ check.rating }}
-
-                </p>
-
-
-                {% if check.review_date %}
-
-                <p class="mb-2">
-
-                    <strong>
-                        Review date:
-                    </strong>
-
-                    {{ check.review_date[:10] }}
-
-                </p>
-
+                {% if analysis_id and claim_candidates %}
+                <label for="evidenceClaim" class="form-label fw-semibold">Statement to check</label>
+                <select id="evidenceClaim" class="form-select mb-3">
+                    {% for candidate in claim_candidates %}
+                    <option value="{{ loop.index0 }}">{{ candidate.text }}</option>
+                    {% endfor %}
+                </select>
+                <p class="small text-muted">These are suggested search statements. Check that the selected wording captures the claim you want to investigate.</p>
+                <button type="button" id="checkEvidence" class="btn btn-outline-primary mb-3"
+                        data-url="{{ url_for('check_external_evidence', id=analysis_id) }}"
+                        data-csrf="{{ highlights_csrf }}">Check external evidence</button>
+                {% else %}
+                <p class="text-muted">A saved analysis is required to run an evidence search. Analyse the content again if its history could not be saved.</p>
                 {% endif %}
-
-
-                {% if check.url %}
-
-                <a
-                    href="{{ check.url }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="btn btn-outline-primary btn-sm"
-                >
-                    Read Fact Check
-                </a>
-
-                {% endif %}
-
-
+                <div id="evidenceStatus" role="status" aria-live="polite" class="mb-3"></div>
+                <div id="evidenceResult" aria-busy="false"></div>
+                <noscript><p class="text-muted">Enable JavaScript to search and view external evidence.</p></noscript>
+                <script type="application/json" id="savedExternalEvidence">{{ external_evidence|default(none)|tojson }}</script>
+                <script type="application/json" id="evidenceCandidates">{{ claim_candidates|default([])|tojson }}</script>
             </div>
-
-
-            {% endfor %}
-
-
-            {% else %}
-
-
-<div class="alert alert-secondary">
-
-    <h5 class="mb-2">
-        No Matching Fact-Check
-    </h5>
-
-    <p class="mb-0">
-        No sufficiently relevant published fact-check
-        was found for the submitted content.
-        This does not mean the content is true or false;
-        it means VERITAS could not find matching
-        external evidence.
-    </p>
+        </div>
+    </div>
 
 </div>
-
-            {% endif %}
-
 
             <a
                 href="/"
@@ -1357,6 +779,233 @@
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js">
 </script>
 
+
+<script>
+(() => {
+    const target = document.getElementById('highlightsResult');
+    if (!target) return;
+    const button = document.getElementById('generateHighlights');
+    const controls = document.getElementById('highlightsControls');
+    const status = document.getElementById('highlightsStatus');
+    function element(tag, className, text) {
+        const node = document.createElement(tag);
+        node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+    }
+    function render(payload) {
+        target.replaceChildren();
+        const highlights = payload.influence_highlights;
+        if (!highlights) return;
+        controls.hidden = true;
+        if (payload.message) target.append(element('div', 'alert alert-secondary', payload.message));
+        if (payload.skipped) return;
+        const info = payload.attribution_info;
+        target.append(element('p', 'fw-semibold', `Highlighted passages: ${highlights.highlight_count}`));
+        if (info) {
+            const selection = info.selected_chunks ? ` (chunks ${info.selected_chunks.join(', ')})` : '';
+            target.append(element('p', 'small text-muted',
+                `Article chunks explained: ${info.chunks_used} of ${info.prediction_chunks || info.chunks_used}${selection}.`));
+            if (info.partial_coverage) target.append(element('div', 'alert alert-warning',
+                'This explanation covers only selected portions of the article. Unhighlighted passages may not have been explained.'));
+            else if (info.truncated) target.append(element('div', 'alert alert-warning',
+                'Only the portion processed by the model was eligible for highlighting.'));
+        }
+        const legend = element('div', 'mb-3');
+        legend.append(element('small', 'text-muted me-2', 'Influence level:'));
+        for (const [signal, className] of [['LOW', 'bg-warning text-dark'], ['MODERATE', ''], ['HIGH', 'bg-danger']]) {
+            const badge = element('span', `badge me-1 ${className}`, signal);
+            if (signal === 'MODERATE') { badge.style.background = '#fd7e14'; badge.style.color = 'white'; }
+            legend.append(badge);
+        }
+        target.append(legend);
+        const article = element('div', 'ai-influence-box');
+        for (const segment of highlights.segments || []) {
+            const validSignal = ['HIGH', 'MODERATE', 'LOW'].includes(segment.signal) ? segment.signal : 'LOW';
+            const span = element('span', segment.highlighted ? `ai-highlight ai-highlight-${validSignal.toLowerCase()}` : '', segment.text);
+            if (segment.highlighted) {
+                const value = Number(segment.net_contribution).toFixed(2);
+                span.title = `Relative attribution value: +${value}`;
+                article.append(span);
+                const color = validSignal === 'HIGH' ? 'bg-danger' : validSignal === 'LOW' ? 'bg-warning text-dark' : '';
+                const badge = element('span', `badge ai-influence-tag ${color}`, `${validSignal} +${value}`);
+                if (validSignal === 'MODERATE') { badge.style.background = '#fd7e14'; badge.style.color = 'white'; }
+                article.append(badge);
+            } else article.append(span);
+            article.append(document.createTextNode(' '));
+        }
+        target.append(article);
+        if (highlights.highlight_count === 0) target.append(element('div', 'alert alert-light border mt-3',
+            'No passages exceeded the display threshold in the portions explained. This does not verify the article as true or credible.'));
+        target.append(element('small', 'text-muted d-block mt-3',
+            'Influence values are approximate relative model attribution scores, not changes in FAKE probability or proof of factual falsity.'));
+    }
+    const saved = JSON.parse(document.getElementById('savedHighlights').textContent);
+    render(saved);
+    if (!button) return;
+    button.addEventListener('click', async () => {
+        button.disabled = true;
+        target.setAttribute('aria-busy', 'true');
+        status.className = 'text-muted mb-3';
+        const spinner = element('span', 'spinner-border spinner-border-sm me-2');
+        spinner.setAttribute('aria-hidden', 'true');
+        status.replaceChildren(spinner, document.createTextNode('Analysing model influence… You can keep reading this result.'));
+        try {
+            const response = await fetch(button.dataset.url, {
+                method: 'POST', credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'X-CSRF-Token': button.dataset.csrf }
+            });
+            if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
+                throw new Error('Your session may have expired. Please reload and sign in again.');
+            }
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Highlights could not be generated. Please try again.');
+            render(payload);
+            status.textContent = payload.save_warning || (payload.skipped ? 'Explanation skipped.' : 'Highlights ready.');
+            if (payload.save_warning) status.className = 'text-warning mb-3';
+        } catch (error) {
+            status.className = 'text-danger mb-3';
+            status.textContent = error.message || 'Unable to connect. Please try again.';
+            button.disabled = false;
+            button.textContent = 'Try generating highlights again';
+        } finally {
+            target.setAttribute('aria-busy', 'false');
+        }
+    });
+})();
+</script>
+
+<script>
+(() => {
+    const target = document.getElementById('evidenceResult');
+    if (!target) return;
+    const button = document.getElementById('checkEvidence');
+    const select = document.getElementById('evidenceClaim');
+    const status = document.getElementById('evidenceStatus');
+    const candidates = JSON.parse(document.getElementById('evidenceCandidates').textContent);
+    let refreshNext = false;
+    function node(tag, className, text) {
+        const item = document.createElement(tag);
+        item.className = className;
+        if (text !== undefined) item.textContent = String(text);
+        return item;
+    }
+    function link(url, text) {
+        try {
+            const parsed = new URL(url);
+            if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password) return null;
+            const item = node('a', 'btn btn-outline-primary btn-sm', text);
+            item.href = parsed.href; item.target = '_blank'; item.rel = 'noopener noreferrer';
+            return item;
+        } catch { return null; }
+    }
+    function updateAssessment(assessment, explanation) {
+        if (assessment) {
+            for (const [id, key] of [['overallHeadline','headline'], ['overallLabel','label'],
+                    ['overallMessage','message'], ['overallGuidance','guidance']]) {
+                const item = document.getElementById(id);
+                if (item) item.textContent = assessment[key] || '';
+            }
+            const panel = document.getElementById('overallPanel');
+            const classes = {ALIGNED:'alert-success', CONFLICT:'alert-warning', INCONCLUSIVE:'alert-info'};
+            if (panel) panel.className = 'alert ' + (classes[assessment.status] || 'alert-secondary');
+        }
+        if (explanation) {
+            for (const [id,key] of [['explanationEvidenceReason','evidence_reason'], ['explanationInterpretationNote','interpretation_note']]) {
+                const item = document.getElementById(id);
+                if (item) item.textContent = explanation[key] || '';
+            }
+        }
+    }
+    function render(bundle) {
+        target.replaceChildren();
+        if (!bundle) return;
+        target.append(node('p', 'fw-semibold', `Statement checked: ${bundle.selected_claim}`));
+        target.append(node('p', 'small text-muted', bundle.scope_note || 'This finding applies only to the selected statement.'));
+        if (bundle.checked_at) {
+            const date = new Date(bundle.checked_at);
+            target.append(node('p', 'small text-muted', 'Last checked: ' + (isNaN(date.getTime()) ? bundle.checked_at : date.toLocaleString())));
+        }
+        const relation = bundle.evidence_relationship || {};
+        const alertClass = relation.status === 'CONFLICT' ? 'alert-warning' : relation.status === 'AGREEMENT' ? 'alert-success' : 'alert-secondary';
+        target.append(node('div', 'alert ' + alertClass, relation.message || 'No automatic claim verdict was established.'));
+        for (const message of [bundle.google_error, bundle.tavily_error, bundle.extraction_warning]) {
+            if (message) target.append(node('div', 'alert alert-warning', message));
+        }
+        target.append(node('h5', 'mt-3', 'Published fact-checks'));
+        const reviews = bundle.factcheck_results || [];
+        if (!reviews.length) target.append(node('p', 'text-muted', bundle.google_error ? 'The published fact-check lookup was unavailable.' : 'No matching published review was returned.'));
+        for (const review of reviews.slice(0, 3)) {
+            const box = node('div', 'border rounded p-3 mb-3');
+            box.append(node('h6', 'fw-semibold', review.publisher || 'Fact-check publisher'));
+            box.append(node('p', 'mb-2', 'Reviewed claim: ' + (review.claim || '')));
+            box.append(node('p', 'mb-2', 'Publisher rating: ' + (review.rating || 'Unclear')));
+            box.append(node('p', 'small text-muted', review.matching_note || 'Review the claim match before applying this rating.'));
+            if (review.review_date) box.append(node('p', 'small text-muted', 'Review date: ' + review.review_date.slice(0, 10)));
+            const sourceLink = link(review.url, 'Read published fact-check');
+            if (sourceLink) box.append(sourceLink);
+            target.append(box);
+        }
+        target.append(node('h5', 'mt-4', 'Web sources for review'));
+        target.append(node('p', 'small text-muted', 'These pages were retrieved as possible evidence. Their stance has not been automatically assessed. Check what they actually say about the selected statement.'));
+        const sources = bundle.sources || [];
+        if (!sources.length) target.append(node('p', 'text-muted', bundle.tavily_error ? 'The web search was unavailable.' : 'No usable web sources were returned.'));
+        for (const source of sources) {
+            const box = node('div', 'border rounded p-3 mb-3');
+            box.append(node('h6', 'fw-semibold', source.title || 'Web source'));
+            box.append(node('p', 'small text-muted mb-2', source.publisher_site || ''));
+            if (source.published_date) box.append(node('p', 'small text-muted', 'Date reported by search: ' + source.published_date));
+            box.append(node('p', 'small fw-semibold mb-1', source.passage_type === 'extracted_passage' ? 'Retrieved passage:' : 'Search excerpt:'));
+            box.append(node('blockquote', 'mb-3', source.passage || 'No readable passage was available.'));
+            const sourceLink = link(source.url, 'Read source');
+            if (sourceLink) box.append(sourceLink);
+            target.append(box);
+        }
+        if (select && button) {
+            const index = candidates.findIndex(candidate => candidate.text === bundle.selected_claim);
+            if (index >= 0) select.value = String(index);
+            refreshNext = true;
+            button.textContent = 'Search this statement again';
+        }
+    }
+    render(JSON.parse(document.getElementById('savedExternalEvidence').textContent));
+    if (!button || !select) return;
+    select.addEventListener('change', () => {
+        refreshNext = false;
+        button.textContent = 'Check selected statement';
+    });
+    button.addEventListener('click', async () => {
+        button.disabled = true; select.disabled = true;
+        target.setAttribute('aria-busy', 'true');
+        status.className = 'text-muted mb-3';
+        const spinner = node('span', 'spinner-border spinner-border-sm me-2');
+        spinner.setAttribute('aria-hidden', 'true');
+        status.replaceChildren(spinner, document.createTextNode('Searching published reviews and web sources…'));
+        try {
+            const response = await fetch(button.dataset.url, {
+                method: 'POST', credentials: 'same-origin',
+                headers: {'Content-Type':'application/json', 'Accept':'application/json', 'X-CSRF-Token':button.dataset.csrf},
+                body: JSON.stringify({claim_index:Number(select.value), refresh:refreshNext})
+            });
+            if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) throw new Error('Your session may have expired. Please reload and sign in again.');
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'The search could not be completed. Please try again.');
+            render(payload.external_evidence);
+            updateAssessment(payload.overall_assessment, payload.explanation);
+            const unavailable = payload.external_evidence.evidence_relationship.status === 'UNAVAILABLE';
+            status.textContent = payload.save_warning || (unavailable ? 'External verification is unavailable. You can retry.' : 'Evidence search completed. Review the findings below.');
+            status.className = (payload.save_warning || unavailable ? 'text-warning' : 'text-muted') + ' mb-3';
+        } catch (error) {
+            status.className = 'text-danger mb-3';
+            status.textContent = error.message || 'Unable to connect. Please try again.';
+            button.textContent = 'Retry evidence search';
+        } finally {
+            button.disabled = false; select.disabled = false;
+            target.setAttribute('aria-busy', 'false');
+        }
+    });
+})();
+</script>
 
 </body>
 
