@@ -61,7 +61,8 @@ from services.assessment_service import (
 )
 
 from services.attribution_service import (
-    generate_article_highlights,
+    generate_text_highlights,
+    ATTRIBUTION_VERSION,
     HighlightsBusy
 )
 
@@ -1033,6 +1034,15 @@ def current_history_context(entry):
     context["overall_assessment"] = build_overall_assessment(
         entry.prediction, context.get("prediction_strength") or {},
         context.get("evidence_relationship"), context.get("factcheck_results"))
+    # Old FAKE-only explanations (and skipped REAL explanations) must not be
+    # displayed as if they explained the newly supported predicted class.
+    info = context.get("attribution_info") or {}
+    expected_type = "article" if entry.input_type == "url" else entry.input_type
+    if (info.get("version") != ATTRIBUTION_VERSION
+            or info.get("target_class") != entry.prediction
+            or info.get("input_type") != expected_type):
+        context.update(influence_highlights=None, attribution_info=None,
+                       attribution_skipped=False, attribution_message=None)
     return context
 
 
@@ -1159,26 +1169,21 @@ def generate_highlights(id):
     ).scalar_one_or_none()
     if entry is None:
         return jsonify(error="This analysis could not be found."), 404
-    if entry.input_type not in ("article", "url"):
-        return jsonify(error="Highlights are available for articles only."), 400
+    if entry.input_type not in ("article", "url", "claim", "headline"):
+        return jsonify(error="This analysis type cannot be explained."), 400
 
     data = dict(entry.result_data or {})
-    context = dict(data.get("page_context", {}))
+    context = current_history_context(entry)
     if context.get("influence_highlights") is not None:
         return jsonify(influence_highlights=context["influence_highlights"],
                        attribution_info=context.get("attribution_info"),
                        message=context.get("attribution_message"),
-                       skipped=bool(context.get("attribution_skipped")), cached=True)
+                       skipped=False, cached=True)
     try:
-        # A low FAKE score is a speed policy, not evidence that no influence exists.
-        if entry.prediction == "REAL" and float(context.get("fake_probability", 100)) < 30:
-            payload = {"influence_highlights": {"segments": [], "highlight_count": 0},
-                       "attribution_info": None, "skipped": True,
-                       "message": "Highlights were skipped to save time because the model's "
-                                  "FAKE score is below 30%. This does not verify the article's accuracy."}
-        else:
-            payload = generate_article_highlights(
-                entry.article_text or "", prediction_context=data.get("attribution_prediction"))
+        payload = generate_text_highlights(
+            entry.article_text or "", input_type=entry.input_type,
+            prediction=entry.prediction,
+            prediction_context=data.get("attribution_prediction"))
     except HighlightsBusy as error:
         return jsonify(error=str(error)), 409
     except Exception:

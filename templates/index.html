@@ -1,281 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VERITAS - Fake News Detector</title>
-    <link rel="icon" href="#">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <style>
-    body{
-        min-height:100vh;
-        background: linear-gradient(
-            135deg,
-            #0f172a,
-            #1e3a8a,
-            #2563eb
-        );
-        background-size: cover;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    .hero{
-        padding-top:80px;
-        padding-bottom:40px;
-        color:white;
-    }
-
-    .hero h1{
-        font-size:clamp(2.5rem,6vw,4.5rem);
-        font-weight:800;
-        line-height:1.1;
-    }
-
-    .hero p{
-        font-size:clamp(1rem,2vw,1.4rem);
-        opacity:0.9;
-    }
-
-    .highlight{
-        color:#ff4d4d;
-    }
-
-    .glass-card{
-        background: rgba(255,255,255,0.15);
-        backdrop-filter: blur(15px);
-        -webkit-backdrop-filter: blur(15px);
-        border:1px solid rgba(255,255,255,0.2);
-        border-radius:20px;
-        box-shadow:0 8px 32px rgba(0,0,0,0.2);
-    }
-
-    .form-control{
-        border-radius:12px;
-        padding:12px;
-    }
-
-    .form-control:focus{
-        box-shadow:0 0 0 0.2rem rgba(37,99,235,0.25);
-    }
-
-    .btn-custom{
-        background:linear-gradient(
-            135deg,
-            #2563eb,
-            #1d4ed8
-        );
-        border:none;
-        border-radius:12px;
-        padding:12px;
-        font-weight:600;
-        transition:all 0.3s ease;
-    }
-
-    .btn-custom:hover{
-        transform:translateY(-2px);
-        box-shadow:0 8px 20px rgba(37,99,235,0.4);
-    }
-
-    .navbar{
-        backdrop-filter: blur(10px);
-        background: rgba(0,0,0,0.7) !important;
-    }
-
-    .card-title{
-        font-weight:700;
-        color:white;
-    }
-
-    .form-label{
-        color:white;
-        font-weight:500;
-    }
-
-    @media(max-width:768px){
-        .hero{
-            padding-top:50px;
-        }
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f172a">
+<title>VERITAS | Check News</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+:root{--ink:#17233d;--blue:#2159d9;--muted:#526078}
+*{box-sizing:border-box}
+body{min-height:100vh;margin:0;color:white;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-gradient(140deg,#0f172a 0%,#1e3a8a 58%,#2563eb 100%)}
+.navbar{background:rgba(8,15,34,.88)!important;backdrop-filter:blur(12px)}
+.navbar .navbar-brand{letter-spacing:.06em}
+.hero{padding:66px 0 28px;text-align:center}
+.hero h1{font-size:clamp(2rem,5vw,3.65rem);font-weight:800;letter-spacing:-.035em;line-height:1.13}
+.hero p{font-size:clamp(1rem,2vw,1.18rem);max-width:650px;margin:16px auto 0;color:#e6ecfb}
+.eyebrow{display:inline-block;font-size:.85rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#b8ceff;margin-bottom:12px}
+.main-card{max-width:760px;margin:12px auto 0;background:white;color:var(--ink);border-radius:22px;box-shadow:0 18px 52px rgba(5,13,37,.3);overflow:hidden}
+.main-header{padding:28px 32px 8px}
+.main-header h2{font-size:1.55rem;font-weight:750}
+.main-header p{color:var(--muted);margin-bottom:0}
+.main-body{padding:24px 32px 30px}
+.form-label{color:var(--ink);font-weight:700;margin-bottom:9px}
+.form-select,.form-control{border-radius:12px;border:1px solid #b9c6db;padding:14px;font-size:1.05rem;color:var(--ink)}
+.form-select:focus,.form-control:focus{border-color:#2563eb;box-shadow:0 0 0 .2rem rgba(37,99,235,.16)}
+.form-text,.hint{color:var(--muted);font-size:.95rem}
+.example-box{padding:12px 15px;background:#eff5ff;border:1px solid #cfdefb;border-radius:11px;color:#27446f;margin-top:12px;font-size:.96rem}
+.btn-check-news{width:100%;padding:15px;border-radius:12px;background:#2159d9;border:none;color:#fff;font-weight:750;font-size:1.1rem}
+.btn-check-news:hover,.btn-check-news:focus{background:#1748b9;color:#fff}
+.btn-check-news:disabled{opacity:.7;cursor:wait}
+.privacy-note{font-size:.9rem;color:#566479;text-align:center;margin:13px 0 0}
+.bottom-note{max-width:760px;margin:22px auto 55px;text-align:center;color:#e5edff;line-height:1.65}
+.steps{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:18px}
+.step{background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.25);border-radius:24px;padding:8px 14px;font-size:.92rem}
+@media(max-width:575px){.hero{padding-top:40px}.main-header{padding:23px 21px 3px}.main-body{padding:20px 21px 24px}.main-card{border-radius:18px}}
 </style>
 </head>
-<body class="bg-primary">
-    <nav class="navbar navbar-expand-lg bg-dark shadow-sm" data-bs-theme="dark">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="#">VERITAS</a>
-        
-        <button class="navbar-toggler" type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#navbarSupportedContent">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <li class="nav-item d-flex align-items-center me-lg-3">
-    <span class="navbar-text text-light">
-        Hi, {{ current_user.username }}
-    </span>
-</li>
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link active" href="/">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/analysis">Analysis</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/history">History</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/about">About</a>
-                </li>
-                <li class="nav-item ms-lg-2">
-    <a class="btn btn-outline-danger btn-sm mt-1"
-       href="{{ url_for('logout') }}">
-        Logout
-    </a>
-</li>
-            </ul>
-        </div>
-    </div>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm" aria-label="Main navigation">
+<div class="container">
+<a class="navbar-brand fw-bold" href="/">VERITAS</a>
+<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+<div class="collapse navbar-collapse" id="navbarSupportedContent">
+<ul class="navbar-nav ms-auto align-items-lg-center">
+  <li class="nav-item ms-lg-3"><span class="navbar-text text-light">Hi, {{ current_user.username }}</span></li>
+<li class="nav-item"><a class="nav-link active" aria-current="page" href="/">Home</a></li>
+<li class="nav-item"><a class="nav-link" href="/analysis">Analysis</a></li>
+<li class="nav-item"><a class="nav-link" href="/history">History</a></li>
+<li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+<li class="nav-item"><a class="btn btn-outline-light btn-sm mt-2 mt-lg-0" href="{{ url_for('logout') }}">Log out</a></li>
+</ul></div></div>
 </nav>
-    <div class="container-fluid">
-        <div class="container hero text-center">
-    <h1>
-        Welcome to <br>
-        VERITAS
-    </h1>
-
-    <h2 class="highlight fw-bold">
-        Fake News Detector
-    </h2>
-
-    <p class="mt-3">
-        Verify news articles instantly using AI-powered analysis.
-        Detect misinformation before sharing.
-    </p>
+<main class="container">
+<section class="hero" aria-labelledby="welcome-heading">
+<div class="eyebrow">AI-powered fake news detector</div>
+<h1 id="welcome-heading">Not sure if news is true?<br>Check it with VERITAS.</h1>
+<p>Paste a news story, headline, claim or link. VERITAS will look for signs of fake news and explain its AI prediction in simple language.</p>
+<div class="steps" aria-label="How it works"><span class="step">1. Add news</span><span class="step">2. Check it</span><span class="step">3. Read the result</span></div>
+</section>
+<section class="main-card" aria-labelledby="check-heading">
+<div class="main-header"><h2 id="check-heading">Check a news story</h2><p>Choose what you want to check, then paste it below.</p></div>
+<div class="main-body">
+<form id="analyzeForm" action="/analyze" method="POST">
+<div class="mb-4">
+<label class="form-label" for="inputType">What are you checking?</label>
+<select class="form-select" id="inputType" name="input_type" aria-describedby="typeHelp" required>
+<option value="article" selected>A full news article</option>
+<option value="headline">A news headline</option>
+<option value="claim">A short statement or claim</option>
+<option value="url">A link to a news article</option>
+</select>
+<div id="typeHelp" class="form-text mt-2">Choose the option that best matches your news.</div>
 </div>
-        <div class="container mt-5">
-            <div class="row justify-content-center">
-                <div class="col-md-8 col-lg-6">
-                    <div class="glass-card p-4">
-    <h3 class="card-title text-center mb-4">
-        Analyze News Content
-    </h3>
-
-<form action="/analyze" method="POST">
-
-    <div class="mb-3">
-        <label class="form-label">
-            What would you like to analyse?
-        </label>
-
-        <select
-            class="form-select"
-            name="input_type"
-            required
-        >
-            <option value="article" selected>
-                Full News Article
-            </option>
-
-            <option value="headline">
-                News Headline
-            </option>
-
-            <option value="claim">
-                Short Claim
-            </option>
-            <option value="url">
-    News Article URL
-</option>
-        </select>
-    </div>
-
-
-    <div class="mb-3">
-
-        <label class="form-label">
-            News Content
-        </label>
-
-        <textarea
-            class="form-control"
-            name="news_input"
-            id="newsInput"
-            rows="7"
-            placeholder="Paste the news text here..."
-            required>
-        </textarea>
-    </div>
-
-
-    <button
-        type="submit"
-        class="btn btn-primary w-100"
-    >
-        ANALYZE
-    </button>
-
+<div class="mb-4">
+<label class="form-label" id="contentLabel" for="newsInput">Paste the full news article</label>
+<textarea class="form-control" id="newsInput" name="news_input" rows="7" placeholder="Copy and paste the news article here..." aria-describedby="inputHint exampleHint" required></textarea>
+<div class="form-text mt-2" id="inputHint">Include as much of the article as possible so VERITAS has enough text to examine.</div>
+<div class="example-box" id="exampleHint">Example: Copy the words from a news article and paste them into this box.</div>
+</div>
+<button type="submit" class="btn btn-check-news" id="submitButton">Check this news →</button>
+<p class="privacy-note">AI predictions can be wrong. Always check important news with trusted sources before sharing.</p>
 </form>
-
 </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-    <script>
-
-    const inputType =
-        document.getElementById("inputType");
-
-    const newsInput =
-        document.getElementById("newsInput");
-
-
-    inputType.addEventListener(
-        "change",
-        function () {
-
-            if (this.value === "url") {
-
-                newsInput.placeholder =
-                    "Paste the news article URL here...";
-
-                newsInput.rows = 3;
-
-            }
-
-            else if (this.value === "headline") {
-
-                newsInput.placeholder =
-                    "Paste the news headline here...";
-
-                newsInput.rows = 3;
-
-            }
-
-            else if (this.value === "claim") {
-
-                newsInput.placeholder =
-                    "Enter a short factual claim...";
-
-                newsInput.rows = 4;
-
-            }
-
-            else {
-
-                newsInput.placeholder =
-                    "Paste the full news article here...";
-
-                newsInput.rows = 7;
-
-            }
-
-        }
-    );
-
+</section>
+<p class="bottom-note">VERITAS is a <strong>fake news detection tool</strong>, not a guarantee that a story is true or false. <a href="/about" class="link-light fw-semibold">Learn how it works</a>.</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(() => {
+  const type = document.getElementById('inputType');
+  const input = document.getElementById('newsInput');
+  const label = document.getElementById('contentLabel');
+  const hint = document.getElementById('inputHint');
+  const example = document.getElementById('exampleHint');
+  const form = document.getElementById('analyzeForm');
+  const submit = document.getElementById('submitButton');
+  const guidance = {
+    article: { label:'Paste the full news article', placeholder:'Copy and paste the news article here...', rows:7, hint:'Include as much of the article as possible so VERITAS has enough text to examine.', example:'Example: Copy the words from a news article and paste them into this box.' },
+    headline: { label:'Paste the news headline', placeholder:'Example: Scientists discover a new treatment for...', rows:3, hint:'Enter the headline exactly as it appears. A headline alone may not provide enough context.', example:'Example: A single headline you saw on a website or social media.' },
+    claim: { label:'Enter the statement you want to check', placeholder:'Example: Drinking hot water prevents all illnesses.', rows:4, hint:'Write one clear factual statement rather than several different claims.', example:'Example: A claim someone shared in a message or conversation.' },
+    url: { label:'Paste the news article link', placeholder:'https://example.com/news-story', rows:2, hint:'Use the full website address, starting with https:// or http://.', example:'Example: https://example.com/news-story' }
+  };
+  function updateInput(){
+    const selected = guidance[type.value] || guidance.article;
+    label.textContent = selected.label;
+    input.placeholder = selected.placeholder;
+    input.rows = selected.rows;
+    hint.textContent = selected.hint;
+    example.textContent = selected.example;
+    input.setAttribute('inputmode', type.value === 'url' ? 'url' : 'text');
+  }
+  type.addEventListener('change', updateInput);
+  updateInput();
+  form.addEventListener('submit', function(event){
+    if (!form.checkValidity()) return;
+    if (!input.value.trim()) {
+      event.preventDefault(); input.setCustomValidity('Please enter the news you want to check.'); input.reportValidity(); return;
+    }
+    if (type.value === 'url' && !/^https?:\/\//i.test(input.value.trim())) {
+      event.preventDefault(); input.setCustomValidity('Please enter a full link starting with https:// or http://.'); input.reportValidity(); return;
+    }
+    submit.disabled = true; submit.textContent = 'Checking your news…';
+  });
+  input.addEventListener('input', () => input.setCustomValidity(''));
+})();
 </script>
-</body>
-</html>
+</body></html>

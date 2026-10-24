@@ -3,248 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VERITAS - History</title>
+    <title>VERITAS - My News History</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body{
-            min-height:100vh;
-            background:linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb);
-            font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
-        }
-        .navbar{
-            backdrop-filter: blur(10px);
-            background: rgba(0,0,0,0.7) !important;
-        }
-        .glass-card{
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(15px);
-            border:1px solid rgba(255,255,255,0.2);
-            border-radius:20px;
-            box-shadow:0 8px 32px rgba(0,0,0,0.2);
-        }
-        .hero{
-            padding-top:80px;
-            color:white;
-        }
-        .table{
-            color:white;
-        }
-        .table thead{
-            border-color:rgba(255,255,255,0.3);
-        }
-        .table td,.table th{
-            background:transparent !important;
-            color:white !important;
-        }
+        :root { --blue:#1d4ed8; --ink:#182437; --muted:#526174; }
+        body { min-height:100vh; background:linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb); font-family:'Segoe UI',Tahoma,sans-serif; color:white; }
+        .navbar { background:rgba(0,0,0,.78)!important; backdrop-filter:blur(10px); }
+        .page-heading { padding:48px 0 20px; }
+        .surface { background:#f7f9fc; color:var(--ink); border-radius:22px; padding:clamp(18px,3vw,34px); box-shadow:0 14px 36px rgba(2,9,30,.2); }
+        .muted { color:var(--muted); }
+        .filter-bar { background:white; border:1px solid #dce4ef; border-radius:14px; padding:18px; }
+        .form-control,.form-select { min-height:46px; }
+        .entry { border:1px solid #dce4ef; border-left:7px solid #95a1af; border-radius:16px; padding:20px; background:white; margin-bottom:15px; overflow-wrap:anywhere; }
+        .entry[data-result="REAL"] { border-left-color:#198754; }
+        .entry[data-result="FAKE"] { border-left-color:#dc3545; }
+        .entry-title { font-size:1.08rem; font-weight:700; line-height:1.5; margin:0; }
+        .result-label { display:inline-flex; align-items:center; gap:7px; border-radius:12px; padding:9px 13px; font-weight:750; font-size:.96rem; }
+        .result-label.real { background:#dcfce7; color:#14532d; }
+        .result-label.fake { background:#fee2e2; color:#8f1924; }
+        .result-label.unknown { background:#edf2f7; color:#334155; }
+        .entry-note { font-size:.91rem; color:#526174; }
+        .full-text { white-space:pre-wrap; overflow-wrap:anywhere; background:#f7f9fc; border:1px solid #e0e6ef; border-radius:10px; padding:14px; color:#243044; }
+        .action-link { border:none; background:none; color:#174ab8; font-weight:650; padding:5px 0; text-decoration:underline; text-underline-offset:3px; }
+        .action-link:focus-visible, .btn:focus-visible, .form-control:focus-visible, .form-select:focus-visible { outline:3px solid #f59e0b; outline-offset:2px; }
+        .empty-state { border:2px dashed #cbd5e1; border-radius:15px; padding:34px 18px; text-align:center; background:white; }
+        .count-chip { background:#e9f0ff; color:#1e3a8a; padding:7px 12px; border-radius:999px; font-weight:650; }
+        @media (max-width:575px) { .entry{padding:16px;} .page-heading{padding-top:30px;} }
     </style>
 </head>
 <body>
-
-<nav class="navbar navbar-expand-lg bg-dark shadow-sm" data-bs-theme="dark">
+<nav class="navbar navbar-expand-lg bg-dark shadow-sm" data-bs-theme="dark" aria-label="Main navigation">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="index.html">VERITAS</a>
-        <li class="nav-item d-flex align-items-center me-lg-3">
-    <span class="navbar-text text-light">
-        Hi, {{ current_user.username }}
-    </span>
-</li>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
+        <a class="navbar-brand fw-bold" href="/">VERITAS</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Open menu"><span class="navbar-toggler-icon"></span></button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="/">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/analysis">Analysis</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link active" href="/history">History</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/about">About</a>
-                </li>
-                <li class="nav-item ms-lg-2">
-    <a class="btn btn-outline-danger btn-sm mt-1"
-       href="{{ url_for('logout') }}">
-        Logout
-    </a>
-</li>
+            <ul class="navbar-nav ms-auto align-items-lg-center">
+                <li class="nav-item ms-lg-3"><span class="navbar-text text-light">Hi, {{ current_user.username }}</span></li>
+                <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="/analysis">Analysis</a></li>
+                <li class="nav-item"><a class="nav-link active" aria-current="page" href="/history">History</a></li>
+                <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+                
+                <li class="nav-item ms-lg-2"><a class="btn btn-outline-danger btn-sm mt-1" href="{{ url_for('logout') }}">Logout</a></li>
             </ul>
         </div>
     </div>
 </nav>
 
-<div class="container hero text-center">
-    <h1 class="fw-bold">Analysis History</h1>
-    <p class="lead">Review previously analyzed articles and results.</p>
-</div>
+<header class="container page-heading text-center">
+    <h1 class="fw-bold">Your News Check History</h1>
+    <p class="lead mb-0">See the news you checked before and what VERITAS suggested.</p>
+</header>
 
-<div class="container pb-5">
-    <div class="glass-card p-4">
-        <h3 class="text-white mb-4">Recent Scans</h3>
-
-        <div class="table-responsive">
-            <table class="table align-middle">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Article</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-<tbody>
-
-    {% for item in history %}
-
-    <tr>
-
-        <!-- DATE -->
-        <td>
-            {{ item.get("time", "Unknown time") }}
-        </td>
-
-
-        <!-- ARTICLE / SUBMITTED CONTENT -->
-        <td>
-
-            {% set content = item.get("input", "") %}
-
-            {% if content|length > 250 %}
-
-                <!-- Short preview -->
-                <div id="preview{{ loop.index }}">
-
-                    {{ content[:250] }}...
-
-                </div>
-
-
-                <!-- Full content -->
-                <div
-                    class="collapse mt-2"
-                    id="fullContent{{ loop.index }}"
-                >
-
-                    <div
-                        class="border rounded p-3"
-                        style="
-                            white-space: pre-wrap;
-                            background: rgba(255,255,255,0.1);
-                        "
-                    >
-                        {{ content }}
-                    </div>
-
-                </div>
-
-
-                <!-- Read More Button -->
-                <button
-                    class="btn btn-link text-white p-0 mt-2 read-more-btn"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#fullContent{{ loop.index }}"
-                    aria-expanded="false"
-                    aria-controls="fullContent{{ loop.index }}"
-                >
-                    Read more
-                </button>
-
-
-            {% else %}
-
-                {{ content }}
-
-            {% endif %}
-
-        </td>
-
-
-        <!-- RESULT -->
-        <td>
-
-            {% if item.get("result") == "FAKE" %}
-
-                <span class="badge bg-danger">
-                    FAKE
-                </span>
-
-            {% elif item.get("result") == "REAL" %}
-
-                <span class="badge bg-success">
-                    REAL
-                </span>
-
-            {% else %}
-
-                <span class="badge bg-secondary">
-                    Unknown
-                </span>
-
-            {% endif %}
-
-        </td>
-
-    </tr>
-
-    {% endfor %}
-
-</tbody>
-            </table>
+<main class="container pb-5">
+    <div class="surface">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <h2 class="h4 fw-bold mb-1">Previously checked news</h2>
+                <p class="muted mb-0">Search your saved checks or choose “View Full Analysis” to reopen previous results.</p>
+            </div>
+            <span class="count-chip">{{ history|length }} saved check{% if history|length != 1 %}s{% endif %}</span>
         </div>
+
+        {% if history %}
+        <div class="filter-bar mb-4">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold" for="historySearch">Find a previous news check</label>
+                    <input class="form-control" id="historySearch" type="search" placeholder="Type a word from the news or a date…" autocomplete="off">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold" for="resultFilter">Show results</label>
+                    <select class="form-select" id="resultFilter">
+                        <option value="ALL">All results</option>
+                        <option value="REAL">Possibly real</option>
+                        <option value="FAKE">Possibly false</option>
+                        <option value="OTHER">No clear result</option>
+                    </select>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+                <p class="muted small mb-0" id="shownCount" role="status" aria-live="polite"></p>
+                <button class="btn btn-outline-secondary btn-sm" type="button" id="resetFilters">Clear search and filters</button>
+            </div>
+        </div>
+
+        <div id="historyEntries">
+            {% for item in history %}
+            {% set content = item.get('input', '') or '' %}
+            {% set outcome = item.get('result', '') or '' %}
+            <article class="entry history-entry" data-result="{{ outcome|upper if outcome|upper in ['REAL','FAKE'] else 'OTHER' }}">
+                <div class="row g-3 align-items-start">
+                    <div class="col-md-8 order-2 order-md-1">
+                        <p class="small muted mb-2"><strong>Checked on:</strong> {{ item.get('time') or 'Date not available' }}</p>
+                        <h3 class="entry-title">{{ content[:140] }}{% if content|length > 140 %}…{% endif %}{% if not content %}Saved news check{% endif %}</h3>
+                        {% if content|length > 140 %}
+                        <button class="action-link mt-2" type="button" data-bs-toggle="collapse" data-bs-target="#fullContent{{ loop.index }}" aria-expanded="false" aria-controls="fullContent{{ loop.index }}">Read full text</button>
+                        <div class="collapse mt-3" id="fullContent{{ loop.index }}"><div class="full-text">{{ content }}</div></div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 order-1 order-md-2 text-md-end">
+                        {% if outcome|upper == 'REAL' %}
+                        <span class="result-label real"><span aria-hidden="true">✓</span> Possibly real</span>
+                        {% elif outcome|upper == 'FAKE' %}
+                        <span class="result-label fake"><span aria-hidden="true">!</span> Possibly false</span>
+                        {% else %}
+                        <span class="result-label unknown"><span aria-hidden="true">?</span> No clear result</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-3 mt-3 mb-2 small muted">
+                    {% if item.get('model_used') %}
+                    <span><strong>Model:</strong> {{ item.get('model_used') }}</span>
+                    {% endif %}
+                    {% set confidence = item.get('fake_probability') if outcome|upper == 'FAKE' else item.get('real_probability') %}
+                    {% if confidence is not none %}
+                    <span><strong>AI class score:</strong> {{ confidence }}%</span>
+                    {% endif %}
+                    {% if item.get('prediction_strength') %}
+                    <span><strong>Strength:</strong> {{ item.get('prediction_strength') }}</span>
+                    {% endif %}
+                </div>
+                <a class="btn btn-outline-primary btn-sm mt-2" href="{{ url_for('history_detail', id=item['id']) }}">
+                    View Full Analysis
+                </a>
+                <p class="entry-note mt-3 mb-0">This was an AI prediction, not proof that the news was true or false.</p>
+            </article>
+            {% endfor %}
+        </div>
+        <div id="noMatches" class="empty-state" hidden>
+            <h3 class="h5 fw-bold">No matching news found</h3>
+            <p class="muted">Try a different word or select “All results”.</p>
+            <button class="btn btn-outline-primary" type="button" id="noMatchesReset">Show all saved checks</button>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <h2 class="h5 fw-bold">You haven't checked any news yet</h2>
+            <p class="muted">When you check an article or headline, your saved results will appear here.</p>
+            <a href="/" class="btn btn-primary">Check your first news story</a>
+        </div>
+        {% endif %}
+
+        <div class="mt-4 p-3 rounded-3" style="background:#eaf1ff;color:#243c65">
+            <strong>Remember:</strong> VERITAS gives a prediction, not a final fact-check. For important news, compare it with reliable sources before sharing.
+        </div>
+        <a href="/" class="btn btn-primary btn-lg mt-4">Check another news story</a>
     </div>
-</div>
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
-
-    document
-        .querySelectorAll(".read-more-btn")
-        .forEach(function(button) {
-
-            const targetId =
-                button.getAttribute(
-                    "data-bs-target"
-                );
-
-            const target =
-                document.querySelector(
-                    targetId
-                );
-
-
-            if (!target) {
-                return;
-            }
-
-
-            target.addEventListener(
-                "shown.bs.collapse",
-                function() {
-
-                    button.textContent =
-                        "Read less";
-
-                }
-            );
-
-
-            target.addEventListener(
-                "hidden.bs.collapse",
-                function() {
-
-                    button.textContent =
-                        "Read more";
-
-                }
-            );
-
+(() => {
+    const search = document.getElementById('historySearch');
+    const filter = document.getElementById('resultFilter');
+    if (!search || !filter) return;
+    const entries = Array.from(document.querySelectorAll('.history-entry'));
+    const shownCount = document.getElementById('shownCount');
+    const noMatches = document.getElementById('noMatches');
+    function update() {
+        const needle = search.value.trim().toLocaleLowerCase();
+        const selected = filter.value;
+        let visible = 0;
+        entries.forEach(entry => {
+            const matchesText = entry.textContent.toLocaleLowerCase().includes(needle);
+            const matchesResult = selected === 'ALL' || entry.dataset.result === selected;
+            const show = matchesText && matchesResult;
+            entry.hidden = !show;
+            if (show) visible++;
         });
-
+        shownCount.textContent = `Showing ${visible} of ${entries.length} saved checks`;
+        noMatches.hidden = visible !== 0;
+    }
+    function reset() { search.value = ''; filter.value = 'ALL'; update(); search.focus(); }
+    search.addEventListener('input', update);
+    filter.addEventListener('change', update);
+    document.getElementById('resetFilters').addEventListener('click', reset);
+    document.getElementById('noMatchesReset').addEventListener('click', reset);
+    document.querySelectorAll('[data-bs-target^="#fullContent"]').forEach(button => {
+        const panel = document.querySelector(button.getAttribute('data-bs-target'));
+        if (!panel) return;
+        panel.addEventListener('shown.bs.collapse', () => button.textContent = 'Hide full text');
+        panel.addEventListener('hidden.bs.collapse', () => button.textContent = 'Read full text');
+    });
+    update();
+})();
 </script>
 </body>
 </html>

@@ -88,6 +88,20 @@ def interpret_rating(rating):
         return "TRUE"
     if value in false_ratings:
         return "FALSE"
+    # Some publishers supply a short verdict followed by an explanation,
+    # rather than a one-word rating. Accept only explicit opening verdicts;
+    # do not guess the rating from isolated words such as "not" or "false".
+    explicit_false_openings = (
+        "this is not true ", "this is false ", "the claim is false ",
+        "the claim is not true ", "this claim is false ",
+    )
+    explicit_true_openings = (
+        "this is true ", "the claim is true ", "this claim is true ",
+    )
+    if value.startswith(explicit_false_openings):
+        return "FALSE"
+    if value.startswith(explicit_true_openings):
+        return "TRUE"
     return "UNCLEAR"
 
 
@@ -108,6 +122,45 @@ def rank_fact_checks(query, factcheck_results):
     return ranked
 
 
+def summarize_related_reviews(ai_prediction, reviews):
+    """Display-only context about related reviews, never a verified claim verdict.
+
+    A publisher rating belongs to the publisher's own reviewed claim. Topic
+    overlap, even with the same rating direction, cannot establish that the
+    selected claim was verified. The UI must label this as unconfirmed context.
+    """
+    related = []
+    for review in reviews:
+        selected = review.get("assessed_claim", "")
+        reviewed = review.get("claim", "")
+        if (selected and reviewed and not same_claim(selected, reviewed)
+                and safe_public_url(review.get("url"))
+                and calculate_relevance(selected, reviewed) >= 0.60):
+            rating = interpret_rating(review.get("rating"))
+            if rating in ("TRUE", "FALSE"):
+                related.append(rating)
+    if not related:
+        return None
+    ratings = set(related)
+    if len(ratings) > 1:
+        direction = "MIXED"
+        note = ("Related published reviews give differing ratings to differently "
+                "worded claims. None is automatically a verdict for this statement.")
+    else:
+        rating = next(iter(ratings))
+        agrees = ((str(ai_prediction).upper() == "REAL" and rating == "TRUE") or
+                  (str(ai_prediction).upper() == "FAKE" and rating == "FALSE"))
+        direction = "SAME" if agrees else "OPPOSITE"
+        relation = "the same" if agrees else "a different"
+        count_text = "One related published review rates" if len(related) == 1 else f"{len(related)} related published reviews rate"
+        note = (f"{count_text} a differently worded claim as {rating.lower()}. " if len(related) == 1 else
+                f"{count_text} differently worded claims as {rating.lower()}. ")
+        note += (f"These publisher ratings point in {relation} direction as the AI "
+                 "prediction, but the selected statement has not been verified "
+                 "as a match. Read the original reviews.")
+    return {"count": len(related), "direction": direction, "note": note}
+
+
 def determine_evidence_relationship(ai_prediction, factcheck_results):
     if not factcheck_results:
         return {"status": "NO_MATCH", "message": "No matching published fact-check was found.",
@@ -119,9 +172,15 @@ def determine_evidence_relationship(ai_prediction, factcheck_results):
               and review.get("interpreted_rating") in ("TRUE", "FALSE")]
     verdicts = {review["interpreted_rating"] for review in usable}
     if len(verdicts) != 1:
-        return {"status": "NO_CLEAR_VERDICT", "external_rating": None,
-                "message": ("Published reviews disagree about the selected claim." if len(verdicts) > 1 else
-                            "Related reviews were found, but their wording or rating is not specific enough for an automatic claim verdict.")}
+        result = {"status": "NO_CLEAR_VERDICT", "external_rating": None,
+                  "message": ("Published reviews disagree about the selected claim." if len(verdicts) > 1 else
+                              "Related reviews were found, but their wording or rating is not specific enough for an automatic claim verdict.")}
+        # This is explanatory context only; it never changes the verdict/status.
+        if not verdicts:
+            related = summarize_related_reviews(ai_prediction, factcheck_results)
+            if related:
+                result["related_context"] = related
+        return result
     verdict = next(iter(verdicts))
     agrees = (ai_prediction.upper() == "REAL" and verdict == "TRUE") or (ai_prediction.upper() == "FAKE" and verdict == "FALSE")
     return {"status": "AGREEMENT" if agrees else "CONFLICT", "external_rating": verdict,

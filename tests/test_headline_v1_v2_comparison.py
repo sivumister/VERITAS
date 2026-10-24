@@ -32,10 +32,8 @@ V2_PATH = (
     / "fakenewsnet_headline_bert_v2"
 )
 
-DATASET_DIR = (
-    REPOSITORY_ROOT
-    / "FakeNewsNet"
-    / "dataset"
+DATASET_DIR = Path(
+    r"C:\Users\HP Home\Documents\projects\Veritas-FakeNewsDetector\FakeNewsNet\dataset"
 )
 
 

@@ -1,57 +1,123 @@
-<!DOCTYPE html><html><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>About</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-<style>
-body{min-height:100vh;background:linear-gradient(135deg,#0f172a,#1e3a8a,#2563eb);font-family:'Segoe UI',sans-serif;color:white}
-.navbar{background:rgba(0,0,0,.75)!important;backdrop-filter:blur(10px)}
-.glass{background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border-radius:20px;padding:30px;border:1px solid rgba(255,255,255,.2)}
-.btn-custom{background:#2563eb;border:none}
-.footer{opacity:.8}
-</style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Learn how VERITAS helps you review news using AI predictions and optional fact-checking sources.">
+  <title>About VERITAS</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root{--navy:#0f172a;--blue:#1e3a8a;--bright:#2563eb;--ink:#1f2937;--muted:#566274}
+    body{min-height:100vh;background:linear-gradient(135deg,var(--navy),var(--blue),var(--bright));font-family:'Segoe UI',Tahoma,sans-serif;color:white}
+    .navbar{background:rgba(0,0,0,.75)!important;backdrop-filter:blur(10px)}
+    .navbar .navbar-brand{letter-spacing:.04em}
+    .page-shell{max-width:1060px;margin:auto}
+    .page-intro{text-align:center;margin-bottom:28px}
+    .page-intro p{max-width:660px;margin:12px auto 0;color:#e6edff;font-size:1.12rem;line-height:1.65}
+    .glass{background:rgba(255,255,255,.12);backdrop-filter:blur(12px);border-radius:22px;padding:clamp(16px,3vw,32px);border:1px solid rgba(255,255,255,.22);box-shadow:0 12px 42px rgba(0,0,0,.14)}
+    .panel{background:#fff;color:var(--ink);border-radius:16px;padding:clamp(20px,3vw,28px);height:100%;box-shadow:0 3px 16px rgba(13,31,70,.07)}
+    .panel h2{font-size:1.35rem;font-weight:750;margin-bottom:14px}
+    .panel p{color:var(--muted);line-height:1.7}
+    .icon-circle{display:inline-flex;align-items:center;justify-content:center;width:45px;height:45px;border-radius:13px;background:#eaf1ff;color:#1e40af;font-size:1.35rem;margin-bottom:15px}
+    .step-number{width:35px;height:35px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#1e40af;color:white;font-weight:700;flex:none}
+    .step{display:flex;gap:14px;align-items:flex-start;padding:13px 0;border-bottom:1px solid #e7eaf0}
+    .step:last-child{border-bottom:0}
+    .step strong{display:block;margin-bottom:5px}
+    .step p{margin:0}
+    .result-key{display:flex;align-items:start;gap:12px;border-radius:12px;padding:14px;margin-bottom:10px}
+    .result-key:last-child{margin-bottom:0}
+    .result-key.real{background:#e8f6ed;border-left:5px solid #21844a}
+    .result-key.fake{background:#fff0ef;border-left:5px solid #cf3535}
+    .result-key.unsure{background:#fff5d8;border-left:5px solid #db990b}
+    .result-key strong{display:block;margin-bottom:3px}
+    .result-key p{margin:0;color:#364152}
+    .notice{background:#fff7e1;border:1px solid #f5d88b;border-radius:14px;padding:18px;color:#594207;line-height:1.7}
+    .faq .accordion-item{border:1px solid #dfe5ef;border-radius:12px!important;overflow:hidden;margin-bottom:10px}
+    .faq .accordion-button{font-weight:650;color:#1e3a8a;background:#f7f9fe}
+    .faq .accordion-button:not(.collapsed){background:#eaf1ff;box-shadow:none}
+    .faq .accordion-body{color:#475569;line-height:1.7}
+    .btn-main{background:#2563eb;border-color:#2563eb;font-weight:650;padding:12px 24px}
+    .btn-main:hover{background:#1d4ed8;border-color:#1d4ed8}
+    .footer-note{text-align:center;color:#dce7ff;font-size:.9rem;margin-top:24px}
+    @media(max-width:575px){.page-intro h1{font-size:1.8rem}.page-intro p{font-size:1rem}.glass{padding:14px}}
+  </style>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg bg-dark shadow-sm" data-bs-theme="dark">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="index.html">VERITAS</a>
-        <li class="nav-item d-flex align-items-center me-lg-3">
-    <span class="navbar-text text-light">
-        Hi, {{ current_user.username }}
-    </span>
-</li>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="/">Home</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/analysis">Analysis</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/history">History</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link active" href="/about">About</a>
-                </li>
-                <li class="nav-item ms-lg-2">
-    <a class="btn btn-outline-danger btn-sm mt-1"
-       href="{{ url_for('logout') }}">
-        Logout
-    </a>
-</li>
-            </ul>
-        </div>
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="/">VERITAS</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ms-auto align-items-lg-center">
+        <li class="nav-item ms-lg-3"><span class="navbar-text text-light">Hi, {{ current_user.username }}</span></li>
+        <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="/analysis">Analysis</a></li>
+        <li class="nav-item"><a class="nav-link" href="/history">History</a></li>
+        <li class="nav-item"><a class="nav-link active" aria-current="page" href="/about">About</a></li>
+        
+        <li class="nav-item ms-lg-3"><a class="btn btn-outline-danger btn-sm mt-2 mt-lg-0" href="{{ url_for('logout') }}">Logout</a></li>
+      </ul>
     </div>
+  </div>
 </nav>
-
-<div class="container py-5">
-<div class="glass">
-<h2>About VERITAS</h2>
-<p>VERITAS helps users evaluate the credibility of online news through AI-powered analysis.</p>
-<h4>Features</h4>
-<ul><li>URL Analysis</li><li>Article Classification</li><li>Confidence Scores</li><li>Source Credibility Checks</li></ul>
-</div></div><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script></body></html>
+<main class="container py-5">
+  <div class="page-shell">
+    <header class="page-intro">
+      <h1 class="fw-bold">About VERITAS</h1>
+      <p>A simple way to take a closer look at news before you believe it or share it.</p>
+    </header>
+    <div class="glass">
+      <section class="panel mb-4" aria-labelledby="what-heading">
+        <div class="icon-circle" aria-hidden="true">✓</div>
+        <h2 id="what-heading">What is VERITAS?</h2>
+        <p class="mb-0">VERITAS is an AI-powered news checking tool. It reads news text and gives a prediction about whether the writing looks more like real or false news. You can also use its fact-checking feature to look for information from other sources.</p>
+      </section>
+      <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+          <section class="panel" aria-labelledby="how-heading">
+            <h2 id="how-heading">How to use VERITAS</h2>
+            <div class="step"><span class="step-number">1</span><div><strong>Enter the news</strong><p>Paste the news text or a link to an article.</p></div></div>
+            <div class="step"><span class="step-number">2</span><div><strong>Read the result</strong><p>VERITAS shows what the AI thinks, using a clear label and color.</p></div></div>
+            <div class="step"><span class="step-number">3</span><div><strong>Check other sources</strong><p>When available, use the fact-checking section to investigate a specific statement.</p></div></div>
+            <div class="step"><span class="step-number">4</span><div><strong>Decide carefully</strong><p>Read reliable sources before sharing important news.</p></div></div>
+          </section>
+        </div>
+        <div class="col-lg-6">
+          <section class="panel" aria-labelledby="colors-heading">
+            <h2 id="colors-heading">What do the colors mean?</h2>
+            <div class="result-key real"><span aria-hidden="true">🟢</span><div><strong>Green — Possibly real</strong><p>The AI leans towards the news being real. This is not proof that it is true.</p></div></div>
+            <div class="result-key fake"><span aria-hidden="true">🔴</span><div><strong>Red — Possibly false</strong><p>The AI leans towards the news being false. You should check the claim before trusting the result.</p></div></div>
+            <div class="result-key unsure"><span aria-hidden="true">🟡</span><div><strong>Yellow — Not sure</strong><p>The AI cannot give a clear prediction. More checking is needed.</p></div></div>
+          </section>
+        </div>
+      </div>
+      <section class="panel mb-4" aria-labelledby="features-heading">
+        <h2 id="features-heading">What can VERITAS do?</h2>
+        <div class="row g-3">
+          <div class="col-md-6"><div class="d-flex gap-3"><span class="icon-circle flex-shrink-0" aria-hidden="true">✍</span><div><strong>Check written news</strong><p class="mb-0">Paste news content and see the AI's prediction.</p></div></div></div>
+          <div class="col-md-6"><div class="d-flex gap-3"><span class="icon-circle flex-shrink-0" aria-hidden="true">↗</span><div><strong>Check a news link</strong><p class="mb-0">Give VERITAS an article URL to analyse if the content can be read.</p></div></div></div>
+          <div class="col-md-6"><div class="d-flex gap-3"><span class="icon-circle flex-shrink-0" aria-hidden="true">⌕</span><div><strong>Look for outside evidence</strong><p class="mb-0">Search available fact-checks and relevant web sources for selected statements.</p></div></div></div>
+          <div class="col-md-6"><div class="d-flex gap-3"><span class="icon-circle flex-shrink-0" aria-hidden="true">◷</span><div><strong>Review earlier checks</strong><p class="mb-0">Find past news checks in your History page.</p></div></div></div>
+        </div>
+      </section>
+      <section class="panel mb-4" aria-labelledby="limits-heading">
+        <h2 id="limits-heading">Important: VERITAS can make mistakes</h2>
+        <div class="notice"><strong>Do not treat the AI result as a final fact-check.</strong> A high score does not mean a news story is definitely true or false. The scores describe the AI's prediction, not the real-world chance that the story is true. A page found during an online search is also not automatically proof.</div>
+        <p class="mt-3 mb-0">For important claims, compare reporting from trusted news organisations, check dates and original sources, and read any published fact-check carefully.</p>
+      </section>
+      <section class="panel mb-4" aria-labelledby="questions-heading">
+        <h2 id="questions-heading">Common questions</h2>
+        <div class="accordion faq" id="aboutFaq">
+          <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faqOne" aria-expanded="true" aria-controls="faqOne">Can VERITAS tell me for certain whether news is true?</button></h3><div id="faqOne" class="accordion-collapse collapse show" data-bs-parent="#aboutFaq"><div class="accordion-body">No. It gives an AI prediction. To confirm facts, you still need trustworthy evidence.</div></div></div>
+          <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqTwo" aria-expanded="false" aria-controls="faqTwo">Why does it sometimes say “Not sure”?</button></h3><div id="faqTwo" class="accordion-collapse collapse" data-bs-parent="#aboutFaq"><div class="accordion-body">The AI's scores are too close for it to give a clear answer. This does not mean the news is half true and half false.</div></div></div>
+          <div class="accordion-item"><h3 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faqThree" aria-expanded="false" aria-controls="faqThree">What if there are no fact-checking results?</button></h3><div id="faqThree" class="accordion-collapse collapse" data-bs-parent="#aboutFaq"><div class="accordion-body">It may mean no matching review was found or the search could not be completed. It does not prove the news is true or false.</div></div></div>
+        </div>
+      </section>
+      <div class="text-center py-2"><h2 class="h4 fw-bold mb-2">Have a news story you want to check?</h2><p class="mb-3">You can start with just the text or a link.</p><a href="/" class="btn btn-primary btn-main">Check News Now →</a></div>
+    </div>
+    <p class="footer-note">VERITAS • AI-assisted news analysis • Think critically. Check the facts.</p>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

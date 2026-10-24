@@ -190,6 +190,17 @@
             overflow-wrap: anywhere;
         }
 
+
+        /* First-glance result: color plus words and a symbol. */
+        .quick-result { border: 2px solid; border-radius: 14px; padding: 22px; margin-bottom: 22px; }
+        .quick-result-real { background: #e5f5e9; border-color: #198754; color: #125c32; }
+        .quick-result-false { background: #fde9e9; border-color: #c52c39; color: #8e1823; }
+        .quick-result-uncertain { background: #fff3d0; border-color: #d79a00; color: #714900; }
+        .quick-result-label { font-size: 1.15rem; font-weight: 800; letter-spacing: .025em; }
+        .quick-result-icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; background: currentColor; font-size: 0; flex-shrink: 0; }
+        .quick-result-icon::first-letter { font-size: 0; }
+        .quick-result-real .quick-result-icon, .quick-result-false .quick-result-icon, .quick-result-uncertain .quick-result-icon { background: transparent; border: 3px solid currentColor; font-size: 25px; font-weight: 800; }
+        .quick-result h3 { color: inherit; }
     </style>
 
 </head>
@@ -239,7 +250,7 @@
         >
 
             <ul class="navbar-nav ms-auto">
-
+                <li class="nav-item ms-lg-3"><span class="navbar-text text-light">Hi, {{ current_user.username }}</span></li>
 
                 <li class="nav-item">
 
@@ -316,7 +327,7 @@
 
 
         <h2 class="mb-4">
-            Analysis Results
+            Your News Check Results
         </h2>
 
 
@@ -428,200 +439,151 @@
             </div>
 
             <!-- ==================================
+     AI MODEL ASSESSMENT
+=================================== -->
+
+<div class="mt-4 mb-4">
+    <h4 class="mb-3">What does VERITAS think?</h4>
+    <div class="model-summary-card border rounded-3 p-4">
+        <div class="quick-result {% if prediction_strength.strength == 'LOW' %}quick-result-uncertain{% elif result == 'FAKE' %}quick-result-false{% else %}quick-result-real{% endif %}" role="status">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <span class="quick-result-icon" aria-hidden="true">{% if prediction_strength.strength == 'LOW' %}?{% elif result == 'FAKE' %}!{% else %}✓{% endif %}</span>
+                <span class="quick-result-label">{% if prediction_strength.strength == 'LOW' %}UNCERTAIN RESULT{% elif result == 'FAKE' %}POSSIBLY FALSE{% else %}POSSIBLY REAL{% endif %}</span>
+            </div>
+            {% if prediction_strength.strength == 'LOW' %}
+            <p class="mb-2 fw-semibold">AI leans towards: {% if result == 'FAKE' %}Possibly false{% else %}Possibly real{% endif %}</p>
+            {% endif %}
+        {% if prediction_strength.strength == "LOW" %}
+        <h3 class="h4 fw-bold mb-3">VERITAS is not sure about this news</h3>
+        <p class="fs-5">The AI slightly leans towards saying this news is <strong>{% if result == 'FAKE' %}possibly false{% else %}possibly real{% endif %}</strong>, but its result is not clear enough to rely on.</p>
+        <div class="alert alert-warning">
+            <strong>What does this mean?</strong>
+            <p class="mb-0 mt-2">The news might be true or false. The AI cannot give a clear answer on its own.</p>
+        </div>
+        {% elif result == "FAKE" %}
+        <h3 class="h4 fw-bold mb-3">This news may be false</h3>
+        <p class="fs-5">VERITAS noticed patterns that make it lean towards <strong>possibly false news</strong>. This is not proof that the news is false.</p>
+        {% else %}
+        <h3 class="h4 fw-bold mb-3">This news may be real</h3>
+        <p class="fs-5">VERITAS noticed patterns that make it lean towards <strong>possibly real news</strong>. This is not proof that the news is true.</p>
+        {% endif %}
+        </div>
+
+        {% if prediction_strength.strength == 'HIGH' %}
+        <p><strong>How clear is the AI's result?</strong> The AI has a strong preference for its answer, but it can still be wrong.</p>
+        {% elif prediction_strength.strength == 'MODERATE' %}
+        <p><strong>How clear is the AI's result?</strong> The AI leans towards this answer, but there is still uncertainty.</p>
+        {% else %}
+        <p><strong>How clear is the AI's result?</strong> Not clear. The AI's two possible answers are very close.</p>
+        {% endif %}
+        <div class="border rounded-3 bg-white p-3 mb-3">
+            <h5 class="h6 fw-bold">What should you do?</h5>
+            <p class="mb-0">Before believing or sharing this news, compare it with trusted news sources or use the fact-checking section below.</p>
+        </div>
+        <p class="text-muted mb-3">Remember: an AI guess is not the same as a fact-check.</p>
+        <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse"
+                data-bs-target="#technicalModelDetails" aria-expanded="false" aria-controls="technicalModelDetails">
+            View detailed scores (optional)
+        </button>
+        <div class="collapse mt-3" id="technicalModelDetails">
+            <div class="technical-panel">
+                <p class="mb-3">These numbers show how the AI weighed its two possible answers. They do <strong>not</strong> tell you the chance that the news is actually true or false.</p>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6"><div class="score-card"><small>AI score for possibly false</small><div class="fs-4 fw-semibold">{{ fake_probability }}%</div></div></div>
+                    <div class="col-md-6"><div class="score-card"><small>AI score for possibly real</small><div class="fs-4 fw-semibold">{{ real_probability }}%</div></div></div>
+                </div>
+                <p class="mb-2"><strong>AI prediction:</strong> {{ result }}</p>
+                <p class="mb-2"><strong>Prediction strength:</strong> {{ prediction_strength.strength }}</p>
+                <p class="mb-2"><strong>Decision boundary:</strong> {{ prediction_strength.decision_boundary }}%</p>
+                <p class="mb-2"><strong>Distance from boundary:</strong> {{ prediction_strength.distance }} percentage points</p>
+                {% if chunks_used is not none %}<p class="mb-2"><strong>Article sections analysed:</strong> {{ chunks_used }}</p>{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ==================================
      OVERALL VERITAS ASSESSMENT
 =================================== -->
 
 {% if overall_assessment %}
 <div class="mb-4" id="overallAssessment" role="status" aria-live="polite">
-    <h4 class="mb-3">Overall VERITAS Assessment</h4>
-    <div id="overallPanel" class="alert {% if overall_assessment.status == 'ALIGNED' %}alert-success{% elif overall_assessment.status == 'CONFLICT' %}alert-warning{% elif overall_assessment.status == 'INCONCLUSIVE' %}alert-info{% else %}alert-secondary{% endif %}">
-        <h5 class="mb-2" id="overallHeadline">{{ overall_assessment.headline }}</h5>
-        <p class="mb-2"><strong>Assessment:</strong> <span id="overallLabel">{{ overall_assessment.label }}</span></p>
-        <p class="mb-2" id="overallMessage">{{ overall_assessment.message }}</p>
-        <small id="overallGuidance">{{ overall_assessment.guidance }}</small>
+    <h4 class="mb-3">Do the AI and published fact-checks agree?</h4>
+    <div id="overallPanel" class="alert {% if evidence_relationship.status == 'AGREEMENT' %}alert-success{% elif evidence_relationship.status == 'CONFLICT' %}alert-warning{% else %}alert-light border{% endif %}">
+        <h5 id="overallHeadline" class="fw-bold mb-2">
+            {% if evidence_relationship.status == 'AGREEMENT' %}They agree on the selected statement
+            {% elif evidence_relationship.status == 'CONFLICT' %}They disagree on the selected statement
+            {% elif evidence_relationship.status == 'NOT_CHECKED' %}Not checked against outside sources yet
+            {% else %}Not enough evidence for a reliable comparison{% endif %}
+        </h5>
+        <p id="overallMessage" class="mb-2">
+            {% if evidence_relationship.status == 'AGREEMENT' %}A published fact-check of the same selected claim supports the AI prediction. This is not verification of the entire article.
+            {% elif evidence_relationship.status == 'CONFLICT' %}A published fact-check of the same selected claim disagrees with the AI prediction. Read the review before deciding.
+            {% elif evidence_relationship.status == 'NOT_CHECKED' %}Search for fact-checks below to compare the AI prediction with published reviews of a selected statement.
+            {% else %}The retrieved reviews have not established a clear verdict for exactly the selected statement. This does not mean the news is true or false.{% endif %}
+        </p>
+        <p id="comparisonRelatedNote" class="small mb-2" {% if not (evidence_relationship or {}).get('related_context') %}hidden{% endif %}>{{ (evidence_relationship or {}).get('related_context', {}).get('note', '') }}</p>
+        <p class="small mb-2">Comparison is limited to the selected statement; it does not automatically verify the whole article.</p>
+        <p class="mb-0"><strong>Next step:</strong> Read the original published reviews and compare the wording of the claims.</p>
+        <button type="button" class="btn btn-link btn-sm px-0 mt-2" data-bs-toggle="collapse" data-bs-target="#overallTechnicalDetails">See original assessment details</button>
+        <div class="collapse mt-3" id="overallTechnicalDetails">
+            <div class="small border-top pt-2">
+                <strong>Original assessment:</strong> <span id="overallLabel">{{ overall_assessment.label }}</span><br>
+                <span id="overallRawHeadline">{{ overall_assessment.headline }}</span><br>
+                <span id="overallRawMessage">{{ overall_assessment.message }}</span><br>
+                <span id="overallGuidance">{{ overall_assessment.guidance }}</span>
+            </div>
+        </div>
     </div>
 </div>
-<hr>
 {% endif %}
 
-
-<!-- ==================================
-     AI MODEL ASSESSMENT
-=================================== -->
-
-<div class="mt-4 mb-4">
-
-    <h4 class="mb-3">
-        AI Model Assessment
-    </h4>
-
-    <div class="model-summary-card border rounded-3 p-4">
-
-        <!-- MAIN RESULT + STRENGTH -->
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-
-            <div>
-                <small class="text-muted d-block mb-1">Model classification</small>
-
-                {% if result == "FAKE" %}
-                <span class="badge bg-danger fs-6">MODEL PREDICTION: FAKE</span>
-                {% else %}
-                <span class="badge bg-secondary fs-6">MODEL PREDICTION: REAL</span>
-                {% endif %}
-            </div>
-
-            <div>
-                <small class="text-muted d-block mb-1">Prediction strength</small>
-
-                {% if prediction_strength.strength == "HIGH" %}
-                <span class="badge bg-success fs-6">HIGH</span>
-                {% elif prediction_strength.strength == "MODERATE" %}
-                <span class="badge bg-warning text-dark fs-6">MODERATE</span>
-                {% else %}
-                <span class="badge bg-secondary fs-6">LOW</span>
-                {% endif %}
-            </div>
-
-        </div>
-
-        <p class="small text-muted mb-3">
-            This is the classifier's prediction. Prediction strength measures distance from its decision
-            boundary; it does not establish factual accuracy. External verification is shown separately above.
-        </p>
-        <!-- MODEL SCORES -->
-        <div class="row g-3 mb-3">
-            <div class="col-md-6">
-                <div class="score-card">
-                    <small class="text-muted">Fake score</small>
-                    <div class="fs-4 fw-semibold">{{ fake_probability }}%</div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="score-card">
-                    <small class="text-muted">Real score</small>
-                    <div class="fs-4 fw-semibold">{{ real_probability }}%</div>
-                </div>
-            </div>
-        </div>
-
-        {% if prediction_strength.strength == "LOW" %}
-        <div class="alert alert-warning mb-3">
-            <strong>Borderline AI result</strong>
-            <p class="mb-0 mt-1">
-                This classification is only {{ prediction_strength.distance }} percentage points
-                from the model's decision boundary. The AI result should therefore be interpreted cautiously.
-            </p>
-        </div>
-        {% endif %}
-
-        <button
-            class="btn btn-outline-secondary btn-sm"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#technicalModelDetails"
-            aria-expanded="false"
-            aria-controls="technicalModelDetails"
-        >
-            View technical model details
-        </button>
-
-        <div class="collapse mt-3" id="technicalModelDetails">
-            <div class="technical-panel">
-
-                <p class="mb-2">
-                    <strong>Decision boundary:</strong>
-                    {{ prediction_strength.decision_boundary }}%
-                </p>
-
-                <p class="mb-2">
-                    <strong>Distance from boundary:</strong>
-                    {{ prediction_strength.distance }} percentage points
-                </p>
-
-                {% if chunks_used is not none %}
-                <p class="mb-2">
-                    <strong>Article chunks analysed:</strong>
-                    {{ chunks_used }}
-                </p>
-                {% endif %}
-
-                <div class="alert alert-secondary mt-3 mb-0">
-                    <strong>Important:</strong>
-                    These percentages are model scores used for classification. They are not proof
-                    that the submitted content is objectively true or false.
-                </div>
-
-            </div>
-        </div>
-
-    </div>
-</div>
-
-<p class="section-help mb-3">
-    Open a section below when you want more detail about the result.
-</p>
+<p class="section-help mb-3">Want to know more? Open one of the sections below.</p>
 
 <div class="accordion analysis-accordion" id="analysisDetailsAccordion">
 
-    <!-- ==================================
-         VERITAS EXPLANATION
-    =================================== -->
     {% if explanation %}
     <div class="accordion-item">
-
         <h2 class="accordion-header" id="explanationHeading">
-            <button
-                class="accordion-button collapsed"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#explanationCollapse"
-                aria-expanded="false"
-                aria-controls="explanationCollapse"
-            >
-                Why did VERITAS produce this result?
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#explanationCollapse" aria-expanded="false" aria-controls="explanationCollapse">
+                Why did VERITAS give this answer?
             </button>
         </h2>
-
-        <div
-            id="explanationCollapse"
-            class="accordion-collapse collapse"
-            aria-labelledby="explanationHeading"
-            data-bs-parent="#analysisDetailsAccordion"
-        >
+        <div id="explanationCollapse" class="accordion-collapse collapse" aria-labelledby="explanationHeading" data-bs-parent="#analysisDetailsAccordion">
             <div class="accordion-body">
-
-                <div class="border rounded p-3 mb-3">
-                    <h5>Model Explanation</h5>
-                    <p class="mb-0">{{ explanation.model_reason }}</p>
+                <h5>Why did the AI choose this answer?</h5>
+                <p>VERITAS compared patterns in the news with patterns it learned during training. It leaned towards <strong>{% if result == 'FAKE' %}possibly false{% else %}possibly real{% endif %}</strong> news.</p>
+                {% if prediction_strength.strength == 'LOW' %}
+                <p>However, the two possible answers were very close. This means the AI is unsure.</p>
+                {% elif prediction_strength.strength == 'MODERATE' %}
+                <p>The AI shows some preference for this answer, but it could be wrong.</p>
+                {% else %}
+                <p>The AI shows a stronger preference for this answer, but that is still not proof.</p>
+                {% endif %}
+                <h5>Has the news been checked against other sources?</h5>
+                <p id="explanationEvidenceReason">Use <strong>Check the news with other sources</strong> below to look for outside information. The AI result alone does not verify the news.</p>
+                <p class="alert alert-light border">Do not rely on this result alone when deciding whether to share the story.</p>
+                <p id="explanationAttributionReason" class="small text-muted">To inspect which passages influenced this model's result, open “Text that influenced the AI” below and select “Show highlighted words”. These explanations describe model behaviour, not external fact-check results.</p>
+                <button class="btn btn-link px-0" type="button" data-bs-toggle="collapse" data-bs-target="#explanationTechnical">
+                    Read the original technical explanation
+                </button>
+                <div class="collapse" id="explanationTechnical">
+                    <div class="border rounded p-3">
+                        <p><strong>Model explanation:</strong> {{ explanation.model_reason }}</p>
+                        <p><strong>Prediction strength:</strong> {{ explanation.strength_reason }}</p>
+                        <p><strong>Original evidence explanation:</strong> <span id="explanationRawEvidenceReason">{{ explanation.evidence_reason }}</span></p>
+                        <p class="mb-0"><strong>Original note:</strong> <span id="explanationInterpretationNote">{{ explanation.interpretation_note }}</span></p>
+                    </div>
                 </div>
-
-                <div class="border rounded p-3 mb-3">
-                    <h5>Prediction Strength</h5>
-                    <p class="mb-0">{{ explanation.strength_reason }}</p>
-                </div>
-
-                <div class="border rounded p-3 mb-3">
-                    <h5>External Evidence Interpretation</h5>
-                    <p class="mb-0" id="explanationEvidenceReason">{{ explanation.evidence_reason }}</p>
-                </div>
-
-                <div class="alert alert-light border mb-0">
-                    <strong>Important:</strong>
-                    <span id="explanationInterpretationNote">{{ explanation.interpretation_note }}</span>
-                </div>
-
             </div>
         </div>
-
     </div>
     {% endif %}
-
 
     <!-- ==================================
          AI INFLUENCE HIGHLIGHTS
     =================================== -->
-    {% if input_type in ["article", "url"] %}
+    {% if input_type in ["article", "url", "claim", "headline"] %}
     <div class="accordion-item">
 
         <h2 class="accordion-header" id="influenceHeading">
@@ -633,7 +595,7 @@
                 aria-expanded="false"
                 aria-controls="influenceCollapse"
             >
-                AI Influence Highlights
+                Text that influenced the AI
             </button>
         </h2>
 
@@ -646,11 +608,11 @@
             <div class="accordion-body">
 
                 <div class="alert alert-info">
-                    <strong>What do these highlights mean?</strong>
+                    <strong>What do the highlighted passages mean?</strong>
                     <p class="mb-0 mt-1">
-                        Highlighted passages contain language that contributed more strongly toward
-                        the AI model's FAKE-side output. These highlights explain model behaviour and
-                        do not mean that the highlighted statements are factually false.
+                        Highlighted passages show approximate influence toward the displayed
+                        FAKE or REAL prediction. They describe the model's behaviour, not whether
+                        the highlighted statements are factually true or false.
                     </p>
                 </div>
 
@@ -662,11 +624,11 @@
                     <button type="button" class="btn btn-outline-primary" id="generateHighlights"
                             data-url="{{ url_for('generate_highlights', id=analysis_id) }}"
                             data-csrf="{{ highlights_csrf }}">
-                        Generate AI Influence Highlights
+                        Show highlighted words
                     </button>
                     {% elif not influence_highlights %}
                     <p class="text-muted mb-0">
-                        Highlights need a saved analysis. Please analyse the article again if history could not be saved.
+                        Highlights need a saved analysis. Please submit the news again if history could not be saved.
                     </p>
                     {% endif %}
                 </div>
@@ -692,7 +654,7 @@
         <h2 class="accordion-header" id="evidenceHeading">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                     data-bs-target="#evidenceCollapse" aria-expanded="false" aria-controls="evidenceCollapse">
-                External Evidence: Fact-Checks and Web Sources
+                Check the news with other sources
             </button>
         </h2>
         <div id="evidenceCollapse" class="accordion-collapse collapse" aria-labelledby="evidenceHeading"
@@ -703,7 +665,7 @@
                     separately. A related page does not automatically confirm a statement.
                 </p>
                 {% if analysis_id and claim_candidates %}
-                <label for="evidenceClaim" class="form-label fw-semibold">Statement to check</label>
+                <label for="evidenceClaim" class="form-label fw-semibold">What would you like to check?</label>
                 <select id="evidenceClaim" class="form-select mb-3">
                     {% for candidate in claim_candidates %}
                     <option value="{{ loop.index0 }}">{{ candidate.text }}</option>
@@ -712,7 +674,7 @@
                 <p class="small text-muted">These are suggested search statements. Check that the selected wording captures the claim you want to investigate.</p>
                 <button type="button" id="checkEvidence" class="btn btn-outline-primary mb-3"
                         data-url="{{ url_for('check_external_evidence', id=analysis_id) }}"
-                        data-csrf="{{ highlights_csrf }}">Check external evidence</button>
+                        data-csrf="{{ highlights_csrf }}">Search for fact-checks</button>
                 {% else %}
                 <p class="text-muted">A saved analysis is required to run an evidence search. Analyse the content again if its history could not be saved.</p>
                 {% endif %}
@@ -793,6 +755,7 @@
         if (text !== undefined) node.textContent = text;
         return node;
     }
+    function infoClass(payload) { return payload.attribution_info?.target_class; }
     function render(payload) {
         target.replaceChildren();
         const highlights = payload.influence_highlights;
@@ -801,7 +764,15 @@
         if (payload.message) target.append(element('div', 'alert alert-secondary', payload.message));
         if (payload.skipped) return;
         const info = payload.attribution_info;
-        target.append(element('p', 'fw-semibold', `Highlighted passages: ${highlights.highlight_count}`));
+        const targetClass = infoClass(payload) || 'FAKE';
+        target.append(element('p', 'fw-semibold', `Explaining the model's ${targetClass} prediction`));
+        const weakFallback = highlights.display_mode === 'weak_word_fallback';
+        target.append(element('p', 'small text-muted', `${weakFallback ? 'Highlighted low-contribution words' : 'Highlighted passages'}: ${highlights.highlight_count}`));
+        if (highlights.display_note) target.append(element('div', 'alert alert-warning mt-2', highlights.display_note));
+        const explanationNote = document.getElementById('explanationAttributionReason');
+        if (explanationNote) explanationNote.textContent = weakFallback
+            ? `${highlights.highlight_count} individual words had small positive model-attribution values. No full passage met the normal display threshold. This is not proof that the content is true or false.`
+            : `${highlights.highlight_count} passage(s) met the display threshold for the ${targetClass} prediction. This is approximate model attribution, not a factual verdict.`;
         if (info) {
             const selection = info.selected_chunks ? ` (chunks ${info.selected_chunks.join(', ')})` : '';
             target.append(element('p', 'small text-muted',
@@ -812,7 +783,7 @@
                 'Only the portion processed by the model was eligible for highlighting.'));
         }
         const legend = element('div', 'mb-3');
-        legend.append(element('small', 'text-muted me-2', 'Influence level:'));
+        legend.append(element('small', 'text-muted me-2', 'Effect on AI answer:'));
         for (const [signal, className] of [['LOW', 'bg-warning text-dark'], ['MODERATE', ''], ['HIGH', 'bg-danger']]) {
             const badge = element('span', `badge me-1 ${className}`, signal);
             if (signal === 'MODERATE') { badge.style.background = '#fd7e14'; badge.style.color = 'white'; }
@@ -832,13 +803,13 @@
                 if (validSignal === 'MODERATE') { badge.style.background = '#fd7e14'; badge.style.color = 'white'; }
                 article.append(badge);
             } else article.append(span);
-            article.append(document.createTextNode(' '));
+            if (!weakFallback) article.append(document.createTextNode(' '));
         }
         target.append(article);
         if (highlights.highlight_count === 0) target.append(element('div', 'alert alert-light border mt-3',
-            'No passages exceeded the display threshold in the portions explained. This does not verify the article as true or credible.'));
+            'No passages exceeded the display threshold and no positive word-level attributions were available to display. This does not invalidate the model prediction, but no local text attribution can be shown for this input.'));
         target.append(element('small', 'text-muted d-block mt-3',
-            'Influence values are approximate relative model attribution scores, not changes in FAKE probability or proof of factual falsity.'));
+            'Influence values are approximate contributions toward the predicted-class logit, not percentage-point changes in probability or proof of truth or falsity.'));
     }
     const saved = JSON.parse(document.getElementById('savedHighlights').textContent);
     render(saved);
@@ -861,7 +832,7 @@
             const payload = await response.json();
             if (!response.ok) throw new Error(payload.error || 'Highlights could not be generated. Please try again.');
             render(payload);
-            status.textContent = payload.save_warning || (payload.skipped ? 'Explanation skipped.' : 'Highlights ready.');
+            status.textContent = payload.save_warning || 'Highlights ready.';
             if (payload.save_warning) status.className = 'text-warning mb-3';
         } catch (error) {
             status.className = 'text-danger mb-3';
@@ -899,22 +870,45 @@
             return item;
         } catch { return null; }
     }
-    function updateAssessment(assessment, explanation) {
+    function updateAssessment(assessment, explanation, relationship) {
         if (assessment) {
-            for (const [id, key] of [['overallHeadline','headline'], ['overallLabel','label'],
-                    ['overallMessage','message'], ['overallGuidance','guidance']]) {
+            for (const [id, key] of [['overallRawHeadline','headline'], ['overallLabel','label'],
+                    ['overallRawMessage','message'], ['overallGuidance','guidance']]) {
                 const item = document.getElementById(id);
                 if (item) item.textContent = assessment[key] || '';
             }
+        }
+        if (relationship) {
+            const friendly = {
+                AGREEMENT: ['They agree on the selected statement', 'A published fact-check of the same selected claim supports the AI prediction. This is not verification of the entire article.'],
+                CONFLICT: ['They disagree on the selected statement', 'A published fact-check of the same selected claim disagrees with the AI prediction. Read the review before deciding.'],
+                NOT_CHECKED: ['Not checked against outside sources yet', 'Search for fact-checks below to compare the AI prediction with published reviews of a selected statement.'],
+                NO_MATCH: ['Not enough evidence for a reliable comparison', 'No matching published review was found for the selected statement.'],
+                NO_CLEAR_VERDICT: ['Not enough evidence for a reliable comparison', 'Related reviews were found, but their wording or ratings do not establish a verdict for exactly the selected statement.'],
+                UNAVAILABLE: ['External fact-checking unavailable', 'The evidence search could not give a reliable comparison. You may try again.']
+            };
+            const simple = friendly[relationship.status] || ['Not enough evidence for a reliable comparison', 'The retrieved information does not establish a clear fact-check verdict for the selected statement.'];
+            const title = document.getElementById('overallHeadline');
+            const summary = document.getElementById('overallMessage');
+            if (title) title.textContent = simple[0];
+            if (summary) summary.textContent = simple[1];
+            const note = document.getElementById('comparisonRelatedNote');
+            if (note) {
+                const text = relationship.related_context?.note || '';
+                note.textContent = text;
+                note.hidden = !text;
+            }
             const panel = document.getElementById('overallPanel');
-            const classes = {ALIGNED:'alert-success', CONFLICT:'alert-warning', INCONCLUSIVE:'alert-info'};
-            if (panel) panel.className = 'alert ' + (classes[assessment.status] || 'alert-secondary');
+            if (panel) panel.className = relationship.status === 'AGREEMENT' ? 'alert alert-success' :
+                relationship.status === 'CONFLICT' ? 'alert alert-warning' : 'alert alert-light border';
         }
         if (explanation) {
-            for (const [id,key] of [['explanationEvidenceReason','evidence_reason'], ['explanationInterpretationNote','interpretation_note']]) {
+            for (const [id,key] of [['explanationRawEvidenceReason','evidence_reason'], ['explanationInterpretationNote','interpretation_note']]) {
                 const item = document.getElementById(id);
                 if (item) item.textContent = explanation[key] || '';
             }
+            const evidenceReason = document.getElementById('explanationEvidenceReason');
+            if (evidenceReason && relationship) evidenceReason.textContent = relationship.message || 'No conclusive published claim review is available.';
         }
     }
     function render(bundle) {
@@ -928,11 +922,19 @@
         }
         const relation = bundle.evidence_relationship || {};
         const alertClass = relation.status === 'CONFLICT' ? 'alert-warning' : relation.status === 'AGREEMENT' ? 'alert-success' : 'alert-secondary';
-        target.append(node('div', 'alert ' + alertClass, relation.message || 'No automatic claim verdict was established.'));
+        const comparisonLabel = relation.status === 'AGREEMENT' ? 'AI and fact-check agree' :
+            relation.status === 'CONFLICT' ? 'AI and fact-check disagree' : 'Comparison inconclusive';
+        const resultBox = node('div', 'alert ' + alertClass);
+        resultBox.append(node('strong', '', comparisonLabel + ': '));
+        resultBox.append(document.createTextNode(relation.message || 'No automatic claim verdict was established.'));
+        target.append(resultBox);
+        if (relation.related_context?.note) {
+            target.append(node('p', 'small text-muted', relation.related_context.note));
+        }
         for (const message of [bundle.google_error, bundle.tavily_error, bundle.extraction_warning]) {
             if (message) target.append(node('div', 'alert alert-warning', message));
         }
-        target.append(node('h5', 'mt-3', 'Published fact-checks'));
+        target.append(node('h5', 'mt-3', 'Fact-checks from other organisations'));
         const reviews = bundle.factcheck_results || [];
         if (!reviews.length) target.append(node('p', 'text-muted', bundle.google_error ? 'The published fact-check lookup was unavailable.' : 'No matching published review was returned.'));
         for (const review of reviews.slice(0, 3)) {
@@ -946,7 +948,7 @@
             if (sourceLink) box.append(sourceLink);
             target.append(box);
         }
-        target.append(node('h5', 'mt-4', 'Web sources for review'));
+        target.append(node('h5', 'mt-4', 'Other websites to read'));
         target.append(node('p', 'small text-muted', 'These pages were retrieved as possible evidence. Their stance has not been automatically assessed. Check what they actually say about the selected statement.'));
         const sources = bundle.sources || [];
         if (!sources.length) target.append(node('p', 'text-muted', bundle.tavily_error ? 'The web search was unavailable.' : 'No usable web sources were returned.'));
@@ -968,7 +970,9 @@
             button.textContent = 'Search this statement again';
         }
     }
-    render(JSON.parse(document.getElementById('savedExternalEvidence').textContent));
+    const savedEvidence = JSON.parse(document.getElementById('savedExternalEvidence').textContent);
+    render(savedEvidence);
+    if (savedEvidence?.evidence_relationship) updateAssessment(null, null, savedEvidence.evidence_relationship);
     if (!button || !select) return;
     select.addEventListener('change', () => {
         refreshNext = false;
@@ -991,7 +995,7 @@
             const payload = await response.json();
             if (!response.ok) throw new Error(payload.error || 'The search could not be completed. Please try again.');
             render(payload.external_evidence);
-            updateAssessment(payload.overall_assessment, payload.explanation);
+            updateAssessment(payload.overall_assessment, payload.explanation, payload.external_evidence?.evidence_relationship);
             const unavailable = payload.external_evidence.evidence_relationship.status === 'UNAVAILABLE';
             status.textContent = payload.save_warning || (unavailable ? 'External verification is unavailable. You can retry.' : 'Evidence search completed. Review the findings below.');
             status.className = (payload.save_warning || unavailable ? 'text-warning' : 'text-muted') + ' mb-3';
